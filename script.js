@@ -146,7 +146,11 @@ const clearBtn = document.getElementById("clearBtn");
 let activeCat = "all";
 let keyword = "";
 let isGraphMode = false;
-let isDocMode = false; // 新增：记录当前是否处于文档模式
+let isDocMode = false; // 记录当前是否处于文档模式
+// 文档模式的三层状态：大标签(分类) -> 小标签(词条) -> 卷轴(展开内容/编辑)
+let openDocCat = null;       // 当前展开的大标签(分类key)
+let openDocItemIdx = null;   // 当前展开卷轴的词条 _globalIndex
+let docEditMode = false;     // 卷轴是否处于编辑状态
 
 function catInfo(key){
   return categories.find(c=>c.key===key) || categories[categories.length-1];
@@ -529,42 +533,73 @@ function paint(){
     return;
   }
 
-  // ================= 新增：如果处于文档模式，渲染手风琴视图 =================
+  // ================= 文档模式：大标签 → 小标签 → 卷轴展开/编辑 =================
   if (isDocMode) {
     const grouped = {};
     list.forEach(item => {
       if (!grouped[item.cat]) grouped[item.cat] = [];
       grouped[item.cat].push(item);
     });
+    const catKeys = Object.keys(grouped);
 
-    feed.innerHTML = Object.keys(grouped).map((catKey, idx) => {
+    // 如果之前展开的大类现在不存在了（比如被搜索过滤掉），重置状态
+    if(openDocCat && !catKeys.includes(openDocCat)){ openDocCat = null; openDocItemIdx = null; docEditMode = false; }
+    // 搜索时自动展开第一个命中的大类，方便直接看到结果
+    if(kw && catKeys.length && !openDocCat){ openDocCat = catKeys[0]; }
+
+    const bigTagsHtml = catKeys.map(catKey=>{
       const c = catInfo(catKey);
-      const items = grouped[catKey];
-      const bodyHtml = items.map(item => `
-        <div class="doc-item">
-          <div class="post-actions">
-            <button class="action-btn edit-btn" data-idx="${item._globalIndex}" title="编辑">✏️</button>
-            <button class="action-btn del-btn" data-idx="${item._globalIndex}" title="删除">🗑️</button>
-          </div>
-          <div class="doc-item-q">${highlight(item.q, kw)}</div>
-          <div class="doc-item-a"><b>${highlight(item.a, kw)}</b></div>
-          ${item.extra ? `<div class="doc-item-extra">${highlight(item.extra, kw)}</div>` : ""}
-        </div>
-      `).join("");
-
-      // 搜索时，如果命中结果，自动展开这个分类
-      const isOpen = kw ? "open" : "";
-      
-      return `
-        <div class="doc-folder ${isOpen}" style="animation-delay:${Math.min(idx*30, 300)}ms">
-          <div class="doc-header" onclick="this.parentElement.classList.toggle('open')">
-            <span>${c.icon} ${c.label} <span style="font-size:14px;color:var(--sub);font-weight:normal;margin-left:6px;">(${items.length} 词条)</span></span>
-            <span style="font-size:11px; color:var(--sub)">▼</span>
-          </div>
-          <div class="doc-body">${bodyHtml}</div>
-        </div>
-      `;
+      const activeClass = catKey===openDocCat ? "active" : "";
+      return `<div class="doc-tag-big ${activeClass}" data-cat="${catKey}">${c.icon} ${c.label} <span class="doc-count">${grouped[catKey].length}</span></div>`;
     }).join("");
+
+    let smallTagsHtml = "";
+    if(openDocCat && grouped[openDocCat]){
+      // 展开卷轴后如果这条已不在当前小类列表里，重置卷轴
+      if(openDocItemIdx !== null && !grouped[openDocCat].some(it=>it._globalIndex===openDocItemIdx)){
+        openDocItemIdx = null; docEditMode = false;
+      }
+      smallTagsHtml = `<div class="doc-smalltags">` + grouped[openDocCat].map(item=>{
+        const activeClass = item._globalIndex===openDocItemIdx ? "active" : "";
+        const shortQ = item.q.length > 16 ? item.q.slice(0,16)+"…" : item.q;
+        return `<div class="doc-tag-small ${activeClass}" data-idx="${item._globalIndex}">${highlight(shortQ, kw)}</div>`;
+      }).join("") + `</div>`;
+    }
+
+    let scrollHtml = "";
+    if(openDocItemIdx !== null){
+      const item = getAllData().find(it=>it._globalIndex===openDocItemIdx);
+      if(item){
+        if(docEditMode){
+          scrollHtml = `
+            <div class="doc-scroll open editing" data-idx="${item._globalIndex}">
+              <label class="doc-scroll-label">问题</label>
+              <input class="doc-edit-q" value="${item.q.replace(/"/g,'&quot;')}">
+              <label class="doc-scroll-label">答案</label>
+              <input class="doc-edit-a" value="${item.a.replace(/"/g,'&quot;')}">
+              <label class="doc-scroll-label">拓展说明</label>
+              <textarea class="doc-edit-extra" placeholder="补充说明…">${item.extra||""}</textarea>
+              <div class="doc-scroll-btns">
+                <button class="action-btn doc-cancel-btn">取消</button>
+                <button class="action-btn doc-save-btn">保存</button>
+              </div>
+            </div>`;
+        }else{
+          scrollHtml = `
+            <div class="doc-scroll open" data-idx="${item._globalIndex}">
+              <div class="post-actions">
+                <button class="action-btn doc-edit-btn" data-idx="${item._globalIndex}" title="编辑">✏️</button>
+                <button class="action-btn del-btn" data-idx="${item._globalIndex}" title="删除">🗑️</button>
+              </div>
+              <div class="doc-item-q">${highlight(item.q, kw)}</div>
+              <div class="doc-item-a"><b>${highlight(item.a, kw)}</b></div>
+              ${item.extra ? `<div class="doc-item-extra">${highlight(item.extra, kw)}</div>` : ""}
+            </div>`;
+        }
+      }
+    }
+
+    feed.innerHTML = `<div class="doc-bigtags">${bigTagsHtml}</div>` + smallTagsHtml + scrollHtml;
     return; // 结束渲染，不执行下方的标准列表渲染逻辑
   }
 
@@ -748,6 +783,38 @@ function watchFirebase(){
 if(cloudMode==="firebase"){ watchFirebase(); }
 else if(cloudMode==="claude"){ loadClaudeEntries().then(()=>{ updateIssueLine(); render(true); }); }
 
+// 保存词条（新增或修改都走这里），idx为-1表示新增
+async function saveEntryData(idx, itemData){
+  if(idx === -1){
+    if(cloudMode==="firebase"){
+      await dbPush(dbRef(db, "entries"), itemData);
+    }else if(cloudMode==="claude"){
+      const key = "entry:" + Date.now() + "_" + Math.random().toString(36).slice(2,7);
+      itemData._cloudKey = key;
+      await window.storage.set(key, JSON.stringify(itemData), true);
+      cloudEntries.push(itemData);
+    }else{
+      data.push(itemData);
+    }
+  }else{
+    const allData = getAllData();
+    const targetItem = allData[idx];
+    const isCloud = idx >= data.length;
+    if(isCloud){
+      if(cloudMode==="firebase"){
+        await dbUpdate(dbRef(db, "entries/" + targetItem._cloudKey), itemData);
+      }else if(cloudMode==="claude"){
+        itemData._cloudKey = targetItem._cloudKey;
+        await window.storage.set(targetItem._cloudKey, JSON.stringify(itemData), true);
+        cloudEntries[idx - data.length] = itemData;
+      }
+    }else{
+      data[idx] = itemData;
+    }
+  }
+  updateIssueLine();
+}
+
 btnSave.addEventListener("click", async ()=>{
   const q = inQ.value.trim();
   const a = inA.value.trim();
@@ -757,38 +824,8 @@ btnSave.addEventListener("click", async ()=>{
   btnSave.textContent = "同步中…";
   btnSave.disabled = true;
   try{
-    if(currentEditIndex === -1) {
-      if(cloudMode==="firebase"){
-        await dbPush(dbRef(db, "entries"), itemData);
-      }else if(cloudMode==="claude"){
-        const key = "entry:" + Date.now() + "_" + Math.random().toString(36).slice(2,7);
-        itemData._cloudKey = key;
-        await window.storage.set(key, JSON.stringify(itemData), true);
-        cloudEntries.push(itemData);
-        updateIssueLine(); render(true);
-      }else{
-        data.push(itemData);
-        updateIssueLine(); render(true);
-      }
-    } else {
-      const allData = getAllData();
-      const targetItem = allData[currentEditIndex];
-      const isCloud = currentEditIndex >= data.length; 
-
-      if(isCloud) {
-        if(cloudMode==="firebase"){
-          await dbUpdate(dbRef(db, "entries/" + targetItem._cloudKey), itemData);
-        } else if(cloudMode==="claude") {
-          itemData._cloudKey = targetItem._cloudKey;
-          await window.storage.set(targetItem._cloudKey, JSON.stringify(itemData), true);
-          cloudEntries[currentEditIndex - data.length] = itemData;
-          render(true);
-        }
-      } else {
-        data[currentEditIndex] = itemData;
-        render(true);
-      }
-    }
+    await saveEntryData(currentEditIndex, itemData);
+    render(true);
     inQ.value = ""; inA.value = ""; inExtra.value = "";
     mask.classList.remove("show");
   }catch(e){
@@ -832,6 +869,69 @@ feed.addEventListener("click", async (e) => {
       }
       updateIssueLine(); render(true);
     } catch(err) { alert("删除失败：" + err.message); }
+  }
+});
+
+// ================ 文档模式：大标签 / 小标签 / 卷轴内联编辑 的交互 ================
+feed.addEventListener("click", async (e)=>{
+  // 点大标签：展开/收起对应分类的小标签
+  const bigTag = e.target.closest(".doc-tag-big");
+  if(bigTag){
+    const catKey = bigTag.dataset.cat;
+    openDocCat = (openDocCat === catKey) ? null : catKey;
+    openDocItemIdx = null;
+    docEditMode = false;
+    render(true);
+    return;
+  }
+
+  // 点小标签：展开/收起卷轴
+  const smallTag = e.target.closest(".doc-tag-small");
+  if(smallTag){
+    const idx = parseInt(smallTag.dataset.idx);
+    openDocItemIdx = (openDocItemIdx === idx) ? null : idx;
+    docEditMode = false;
+    render(true);
+    return;
+  }
+
+  // 点"编辑"：卷轴切换为可编辑状态
+  const docEditBtn = e.target.closest(".doc-edit-btn");
+  if(docEditBtn){
+    docEditMode = true;
+    render(true);
+    return;
+  }
+
+  // 点"取消"：退出编辑，不保存
+  const docCancelBtn = e.target.closest(".doc-cancel-btn");
+  if(docCancelBtn){
+    docEditMode = false;
+    render(true);
+    return;
+  }
+
+  // 点"保存"：把卷轴内输入框的内容写回
+  const docSaveBtn = e.target.closest(".doc-save-btn");
+  if(docSaveBtn){
+    const scrollEl = docSaveBtn.closest(".doc-scroll");
+    const idx = parseInt(scrollEl.dataset.idx);
+    const q = scrollEl.querySelector(".doc-edit-q").value.trim();
+    const a = scrollEl.querySelector(".doc-edit-a").value.trim();
+    const extra = scrollEl.querySelector(".doc-edit-extra").value.trim();
+    if(!q || !a){ alert("问题和答案不能为空"); return; }
+    const targetItem = getAllData().find(it=>it._globalIndex===idx);
+    const itemData = { cat: targetItem.cat, q, a, extra: extra || null };
+    docSaveBtn.textContent = "同步中…";
+    docSaveBtn.disabled = true;
+    try{
+      await saveEntryData(idx, itemData);
+      docEditMode = false;
+      render(true);
+    }catch(err){
+      alert("同步失败：" + err.message);
+    }
+    return;
   }
 });
 
@@ -891,6 +991,7 @@ let graphViewMode = "network";
 // 监听文档模式按钮
 docToggleBtn.addEventListener("click", () => {
   isDocMode = !isDocMode;
+  openDocCat = null; openDocItemIdx = null; docEditMode = false;
   if(isDocMode) {
     docToggleBtn.classList.add("active");
     docToggleBtn.textContent = "返回列表模式";

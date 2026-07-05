@@ -235,6 +235,163 @@
     filter:blur(6px);
   }
 
+  /* ================= 文档模式：大标签 → 小标签 → 卷轴展开 ================= */
+  .doc-bigtags{
+    display:flex;
+    flex-wrap:wrap;
+    gap:10px;
+    padding:4px 0 16px;
+  }
+  .doc-tag-big{
+    padding:10px 16px;
+    font-size:14px;
+    font-weight:600;
+    color:var(--ink);
+    background:#fff;
+    border:1.5px solid var(--rule);
+    border-radius:20px;
+    cursor:pointer;
+    transition:all .15s ease;
+  }
+  .doc-tag-big:hover{ background:#f2f0ec; }
+  .doc-tag-big.active{
+    background:var(--ink);
+    color:#fff;
+  }
+  .doc-count{
+    font-size:11px;
+    opacity:.6;
+    margin-left:2px;
+  }
+
+  .doc-smalltags{
+    display:flex;
+    flex-wrap:wrap;
+    gap:8px;
+    padding:0 0 16px 14px;
+    border-left:2px dashed var(--hair);
+    margin-bottom:6px;
+    animation:drawerOpen .2s ease;
+  }
+  .doc-tag-small{
+    padding:7px 12px;
+    font-size:12.5px;
+    color:var(--sub);
+    background:#f2f0ec;
+    border-radius:14px;
+    cursor:pointer;
+    transition:all .15s ease;
+    white-space:nowrap;
+  }
+  .doc-tag-small:hover{ color:var(--ink); background:#e9e5dd; }
+  .doc-tag-small.active{
+    background:var(--accent);
+    color:#fff;
+  }
+
+  /* 卷轴：从上往下展开，模拟展开卷轴的感觉 */
+  .doc-scroll{
+    position:relative;
+    background:#fff;
+    border:1.5px solid var(--rule);
+    border-radius:12px;
+    padding:20px 20px 18px;
+    margin-bottom:20px;
+    transform-origin:top center;
+    animation:unroll .3s ease both;
+  }
+  @keyframes unroll{
+    from{ opacity:0; transform:scaleY(0.85) translateY(-6px); }
+    to{ opacity:1; transform:scaleY(1) translateY(0); }
+  }
+  .doc-scroll::before{
+    content:"";
+    position:absolute;
+    top:-6px; left:20px; right:20px;
+    height:6px;
+    background:repeating-linear-gradient(90deg, var(--rule) 0 10px, transparent 10px 16px);
+    border-radius:3px;
+    opacity:.5;
+  }
+  .doc-scroll .doc-item-q{
+    font-family:Georgia,"Times New Roman","Songti SC",serif;
+    font-size:18px;
+    font-weight:700;
+    line-height:1.4;
+    margin-bottom:8px;
+    padding-right:60px;
+  }
+  .doc-scroll .doc-item-a{
+    font-size:14px;
+    color:var(--ink);
+    line-height:1.6;
+  }
+  .doc-scroll .doc-item-a b{
+    font-weight:700;
+    border-bottom:2px solid var(--accent);
+  }
+  .doc-scroll .doc-item-extra{
+    margin-top:10px;
+    font-size:12.5px;
+    color:var(--sub);
+    line-height:1.6;
+    padding-left:12px;
+    border-left:2px solid var(--hair);
+  }
+
+  /* 卷轴编辑态：像在文档里直接改字 */
+  .doc-scroll.editing{ padding-top:16px; }
+  .doc-scroll-label{
+    display:block;
+    font-size:10.5px;
+    letter-spacing:.08em;
+    text-transform:uppercase;
+    color:var(--sub);
+    margin:10px 0 4px;
+  }
+  .doc-scroll input.doc-edit-q,
+  .doc-scroll input.doc-edit-a,
+  .doc-scroll textarea.doc-edit-extra{
+    width:100%;
+    border:none;
+    border-bottom:1.5px dashed var(--hair);
+    background:transparent;
+    font-family:inherit;
+    outline:none;
+    padding:4px 0;
+  }
+  .doc-scroll input.doc-edit-q{
+    font-family:Georgia,"Times New Roman","Songti SC",serif;
+    font-size:17px;
+    font-weight:700;
+  }
+  .doc-scroll input.doc-edit-a{ font-size:14px; }
+  .doc-scroll textarea.doc-edit-extra{
+    font-size:12.5px;
+    resize:vertical;
+    min-height:40px;
+  }
+  .doc-scroll input.doc-edit-q:focus,
+  .doc-scroll input.doc-edit-a:focus,
+  .doc-scroll textarea.doc-edit-extra:focus{
+    border-bottom-color:var(--accent);
+  }
+  .doc-scroll-btns{
+    display:flex;
+    justify-content:flex-end;
+    gap:10px;
+    margin-top:16px;
+  }
+  .doc-scroll-btns .action-btn{
+    font-size:12.5px;
+    padding:6px 14px;
+    border-radius:8px;
+    border:1px solid var(--ink);
+    opacity:1;
+  }
+  .doc-cancel-btn{ background:#fff; color:var(--ink); }
+  .doc-save-btn{ background:var(--ink); color:#fff; }
+
   /* ================= 新增：文档模式（大词条 -> 小词条）样式 ================= */
   .doc-folder {
     margin-bottom: 14px;
