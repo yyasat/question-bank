@@ -1,0 +1,578 @@
+  :root{
+    --ink:#151414;
+    --paper:#FBFAF8;
+    --rule:#1c1b1b;
+    --accent:#A8321E;
+    --sub:#8a8783;
+    --hair:#e3e0da;
+  }
+  *{box-sizing:border-box;}
+  ::selection{ background:var(--accent); color:#fff; }
+  body{
+    margin:0;
+    background:var(--paper);
+    font-family:"Helvetica Neue",Arial,"PingFang SC","Microsoft YaHei",sans-serif;
+    color:var(--ink);
+    padding-bottom:80px;
+  }
+
+  /* ---------- 刊头 masthead ---------- */
+  .masthead{
+    max-width:640px;
+    margin:0 auto;
+    padding:34px 20px 0;
+    text-align:center;
+  }
+  .kicker{
+    font-size:11px;
+    letter-spacing:.32em;
+    text-transform:uppercase;
+    color:var(--accent);
+    font-weight:600;
+    margin-bottom:10px;
+  }
+  .masthead h1{
+    font-family:Georgia,"Times New Roman","Songti SC",serif;
+    font-size:44px;
+    font-weight:700;
+    letter-spacing:-0.5px;
+    margin:0 0 6px;
+    line-height:1.05;
+  }
+  .masthead .issue{
+    font-size:11.5px;
+    color:var(--sub);
+    letter-spacing:.05em;
+    margin-bottom:22px;
+  }
+  .rule{
+    border:none;
+    border-top:1.5px solid var(--rule);
+    max-width:640px;
+    margin:0 auto;
+  }
+  .rule.thin{ border-top:1px solid var(--hair); }
+
+  /* ---------- 顶部栏（吸顶） ---------- */
+  .topbar{
+    position:sticky;
+    top:0;
+    z-index:50;
+    background:rgba(251,250,248,0.92);
+    backdrop-filter:blur(8px);
+    border-bottom:1px solid var(--hair);
+    padding:12px 20px;
+  }
+  .searchbox{
+    max-width:600px;
+    margin:0 auto;
+    position:relative;
+    display:flex;
+    align-items:center;
+    border-bottom:1.5px solid var(--rule);
+    padding-bottom:6px;
+  }
+  .searchbox .icon{
+    font-size:13px;
+    margin-right:10px;
+    opacity:.55;
+  }
+  .searchbox input{
+    flex:1;
+    border:none;
+    background:none;
+    outline:none;
+    font-size:15px;
+    color:var(--ink);
+    font-family:inherit;
+    letter-spacing:.02em;
+  }
+  .searchbox input::placeholder{ color:#b8b4ad; font-style:italic; }
+  .clear-btn{
+    background:none;border:none;
+    color:var(--sub);
+    font-size:14px;
+    cursor:pointer;
+    padding:2px 4px;
+    display:none;
+  }
+
+  /* ================= 新增：图表模式与文档模式切换按钮样式 ================= */
+  .graph-toggle-btn {
+    background: var(--ink);
+    color: #fff;
+    border: none;
+    border-radius: 4px;
+    padding: 4px 8px;
+    font-size: 12px;
+    cursor: pointer;
+    margin-left: 8px;
+    transition: all 0.2s;
+    white-space: nowrap;
+  }
+  .graph-toggle-btn:hover { background: var(--accent); }
+  .graph-toggle-btn.active { background: var(--accent); }
+
+  /* ---------- 分类目录 tabs ---------- */
+  .tabs{
+    max-width:600px;
+    margin:12px auto 0;
+    display:flex;
+    gap:2px;
+    overflow-x:auto;
+    scrollbar-width:none;
+    padding:0 0 12px;
+  }
+  .tabs::-webkit-scrollbar{display:none;}
+  .tab{
+    flex:0 0 auto;
+    padding:6px 13px;
+    font-size:12px;
+    letter-spacing:.03em;
+    color:var(--sub);
+    border:1px solid var(--hair);
+    border-radius:2px;
+    cursor:pointer;
+    white-space:nowrap;
+    transition:all .15s ease;
+    background:transparent;
+  }
+  .tab:hover{ border-color:var(--ink); color:var(--ink); }
+  .tab.active{
+    background:var(--ink);
+    border-color:var(--ink);
+    color:#fff;
+  }
+  .tab.tab-add{
+    color:var(--accent);
+    border-color:var(--accent);
+    border-style:dashed;
+    font-weight:600;
+  }
+  .tab.tab-add:hover{ background:var(--accent); color:#fff; }
+
+  /* ---------- 大类导航（大框 → 抽屉展开小框）---------- */
+  .groupzone{
+    max-width:600px;
+    margin:0 auto;
+    padding:0 20px;
+  }
+  .groupbar{
+    display:flex;
+    gap:10px;
+    overflow-x:auto;
+    scrollbar-width:none;
+    padding:14px 0 0;
+  }
+  .groupbar::-webkit-scrollbar{ display:none; }
+  .bigtab{
+    flex:0 0 auto;
+    padding:12px 18px;
+    font-size:13.5px;
+    font-weight:600;
+    letter-spacing:.03em;
+    color:var(--ink);
+    background:#fff;
+    border:1.5px solid var(--ink);
+    border-radius:12px;
+    cursor:pointer;
+    white-space:nowrap;
+    transition:all .15s ease;
+  }
+  .bigtab:hover{ background:#f2f0ec; }
+  .bigtab.active{
+    background:var(--ink);
+    color:#fff;
+  }
+  .bigtab.bigtab-add{
+    border-style:dashed;
+    border-color:var(--accent);
+    color:var(--accent);
+  }
+  .bigtab.bigtab-add:hover{ background:var(--accent); color:#fff; }
+
+  .groupdrawer{
+    display:none;
+    flex-wrap:wrap;
+    gap:8px;
+    margin-top:10px;
+    padding:14px;
+    background:#f2f0ec;
+    border-radius:12px;
+    border:1px dashed var(--hair);
+    animation:drawerOpen .22s ease;
+  }
+  @keyframes drawerOpen{
+    from{ opacity:0; transform:translateY(-6px); }
+    to{ opacity:1; transform:translateY(0); }
+  }
+  .drawer-tab{
+    background:#fff;
+  }
+
+  /* ---------- 结果统计 ---------- */
+  .result-bar{
+    max-width:640px;
+    margin:16px auto 0;
+    padding:0 20px;
+    font-size:11px;
+    letter-spacing:.06em;
+    text-transform:uppercase;
+    color:var(--sub);
+  }
+
+  /* ---------- feed / 版面 ---------- */
+  .feed{
+    max-width:640px;
+    margin:0 auto;
+    padding:6px 20px 0;
+    display:flex;
+    flex-direction:column;
+    transition:opacity .28s ease, filter .28s ease;
+  }
+  .feed.melting{
+    opacity:0;
+    filter:blur(6px);
+  }
+
+  /* ================= 新增：文档模式（大词条 -> 小词条）样式 ================= */
+  .doc-folder {
+    margin-bottom: 14px;
+    border: 1.5px solid var(--rule);
+    border-radius: 12px;
+    background: #fff;
+    overflow: hidden;
+    animation: rise .38s ease both;
+  }
+  .doc-header {
+    padding: 16px 20px;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: var(--paper);
+    transition: background 0.2s;
+  }
+  .doc-header:hover {
+    background: #f2f0ec;
+  }
+  .doc-body {
+    display: none;
+    padding: 0 20px 10px;
+    border-top: 1px solid var(--hair);
+  }
+  .doc-folder.open .doc-body {
+    display: block;
+    animation: slideDown .3s ease;
+  }
+  @keyframes slideDown {
+    from { opacity: 0; transform: translateY(-10px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .doc-item {
+    padding: 16px 0;
+    border-bottom: 1px dashed var(--hair);
+    position: relative;
+  }
+  .doc-item:last-child {
+    border-bottom: none;
+  }
+  .doc-item:hover .post-actions {
+    opacity: 1;
+  }
+  .doc-item-q {
+    font-family: Georgia, "Times New Roman", "Songti SC", serif;
+    font-size: 17px;
+    font-weight: 700;
+    line-height: 1.4;
+    margin-bottom: 6px;
+    color: var(--ink);
+  }
+  .doc-item-a {
+    font-size: 14px;
+    color: var(--ink);
+    line-height: 1.6;
+  }
+  .doc-item-a b {
+    font-weight: 700;
+    border-bottom: 2px solid var(--accent);
+  }
+  .doc-item-extra {
+    margin-top: 8px;
+    font-size: 12.5px;
+    color: var(--sub);
+    line-height: 1.6;
+    padding-left: 12px;
+    border-left: 2px solid var(--hair);
+  }
+
+  /* ================= 新增：图表容器样式 ================= */
+  #graphContainer {
+    max-width: 800px;
+    height: 600px;
+    margin: 20px auto;
+    background: #fff;
+    border-radius: 12px;
+    border: 1px solid var(--hair);
+    display: none; /* 默认隐藏 */
+  }
+  .graph-mode-switch{
+    max-width:800px;
+    margin:14px auto 0;
+    display:none;
+    justify-content:center;
+    gap:10px;
+  }
+  .graph-mode-btn{
+    padding:7px 16px;
+    font-size:13px;
+    border-radius:20px;
+    border:1.5px solid var(--ink);
+    background:#fff;
+    color:var(--ink);
+    cursor:pointer;
+    transition:all .15s ease;
+  }
+  .graph-mode-btn.active{
+    background:var(--ink);
+    color:#fff;
+  }
+
+  .post{
+    padding:22px 0;
+    border-bottom:1px solid var(--hair);
+    animation:rise .38s ease both;
+    position: relative; 
+    transition: background-color 0.2s ease; 
+  }
+  .post:last-child{ border-bottom:none; }
+  
+  /* ================= 编辑与删除按钮样式 ================= */
+  .post-actions {
+    position: absolute;
+    right: 0;
+    top: 22px;
+    display: flex;
+    gap: 10px;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+    z-index: 10;
+  }
+  .post:hover .post-actions {
+    opacity: 1; /* 鼠标悬浮显示 */
+  }
+  /* 为文档模式小词条内的按钮单独微调定位 */
+  .doc-item .post-actions {
+    top: 16px;
+  }
+  .action-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 14px;
+    opacity: 0.5;
+    padding: 0;
+  }
+  .action-btn:hover { opacity: 1; transform: scale(1.1); }
+  
+  /* ================= 拖拽状态样式 ================= */
+  .post.dragging {
+    opacity: 0.5;
+    background-color: var(--hair);
+    border-radius: 8px;
+    padding-left: 10px;
+    padding-right: 10px;
+  }
+  .post.drag-over {
+    border-top: 2px solid var(--ink);
+  }
+
+  @keyframes rise{
+    from{ opacity:0; filter:blur(5px); transform:translateY(6px); }
+    to{ opacity:1; filter:blur(0); transform:translateY(0); }
+  }
+
+  .post-kicker{
+    font-size:10.5px;
+    letter-spacing:.22em;
+    text-transform:uppercase;
+    color:var(--accent);
+    font-weight:600;
+    margin-bottom:8px;
+  }
+  .post-q{
+    font-family:Georgia,"Times New Roman","Songti SC",serif;
+    font-size:19px;
+    font-weight:700;
+    line-height:1.4;
+    margin-bottom:8px;
+    letter-spacing:-0.2px;
+  }
+  .post-a{
+    font-size:14px;
+    color:var(--ink);
+    line-height:1.6;
+  }
+  .post-a b{
+    font-weight:700;
+    border-bottom:2px solid var(--accent);
+  }
+  .post-extra{
+    margin-top:10px;
+    font-size:12.5px;
+    color:var(--sub);
+    line-height:1.6;
+    padding-left:12px;
+    border-left:2px solid var(--hair);
+  }
+  mark{
+    background:none;
+    color:var(--accent);
+    font-weight:700;
+  }
+
+  .empty{
+    text-align:center;
+    color:var(--sub);
+    padding:80px 20px;
+    font-size:13px;
+    letter-spacing:.03em;
+    font-style:italic;
+  }
+
+  /* ---------- 新增词条：悬浮按钮 + 弹窗 ---------- */
+  .fab{
+    position:fixed;
+    right:20px;
+    bottom:22px;
+    width:50px;height:50px;
+    border-radius:50%;
+    background:var(--ink);
+    color:#fff;
+    border:none;
+    font-size:24px;
+    line-height:1;
+    cursor:pointer;
+    box-shadow:0 4px 14px rgba(0,0,0,.25);
+    z-index:60;
+  }
+  .mask{
+    position:fixed;
+    inset:0;
+    background:rgba(20,18,17,.45);
+    display:none;
+    align-items:flex-end;
+    justify-content:center;
+    z-index:70;
+  }
+  .mask.show{ display:flex; }
+  .sheet{
+    background:var(--paper);
+    width:100%;
+    max-width:640px;
+    border-radius:18px 18px 0 0;
+    padding:20px 20px 26px;
+    animation:slideUp .25s ease;
+  }
+  @keyframes slideUp{
+    from{ transform:translateY(16px); opacity:0; }
+    to{ transform:translateY(0); opacity:1; }
+  }
+  .sheet h3{
+    font-family:Georgia,"Songti SC",serif;
+    font-size:18px;
+    margin:0 0 14px;
+  }
+  .sheet label{
+    display:block;
+    font-size:11px;
+    letter-spacing:.08em;
+    text-transform:uppercase;
+    color:var(--sub);
+    margin:12px 0 4px;
+  }
+  .sheet select, .sheet input, .sheet textarea{
+    width:100%;
+    border:1px solid var(--hair);
+    border-radius:8px;
+    padding:9px 10px;
+    font-size:14px;
+    font-family:inherit;
+    background:#fff;
+    outline:none;
+  }
+  .sheet textarea{ resize:vertical; min-height:50px; }
+  .sheet .row{ display:flex; gap:14px; margin-top:18px; }
+  .sheet button{
+    flex:1;
+    padding:11px;
+    border-radius:8px;
+    border:1px solid var(--ink);
+    font-size:14px;
+    cursor:pointer;
+  }
+  .btn-cancel{ background:#fff; color:var(--ink); }
+  .btn-save{ background:var(--ink); color:#fff; }
+  .sync-tip{
+    font-size:11.5px;
+    color:var(--sub);
+    margin-top:10px;
+    text-align:center;
+  }
+
+  /* ================= 🌟 绝对无损新增：自适应屏幕大小系统 ================= */
+  @media (max-width: 580px) {
+    /* 解决搜索栏右上角按钮挤压/凸出问题 */
+    .searchbox {
+      flex-wrap: wrap; /* 允许超出宽度时自然换行 */
+    }
+    .searchbox .icon {
+      flex: 0 0 auto;
+    }
+    .searchbox input {
+      flex: 1 1 0%;
+      min-width: 120px; /* 确保输入框不被过度挤压 */
+    }
+    .searchbox .clear-btn {
+      flex: 0 0 auto;
+    }
+    /* 强行将两个模式切换按钮挤压至第二排，并满宽对齐 */
+    #docToggleBtn, #graphToggleBtn {
+      flex: 1 1 40%;
+      margin-left: 0;
+      margin-top: 8px;
+      margin-bottom: 2px;
+      text-align: center;
+      padding: 6px;
+    }
+    #docToggleBtn {
+      margin-right: 6px;
+    }
+
+    /* 优化手机端整体留白 */
+    .masthead { padding-top: 20px; }
+    .masthead h1 { font-size: 34px; }
+    .topbar { padding: 10px 15px; }
+
+    /* 移动端没有鼠标Hover，需要强制显示操作按钮，并给文字留出右边距防止重叠 */
+    .post-actions, .doc-item .post-actions {
+      opacity: 1; 
+    }
+    .post { padding-right: 55px; }
+    .doc-item { padding-right: 55px; }
+    
+    /* 针对手机端略微下调图表容器高度防止占用过高屏幕 */
+    #graphContainer { height: 420px; margin-top: 10px; }
+
+    /* 悬浮球及弹窗细微调优 */
+    .fab { width: 46px; height: 46px; font-size: 22px; right: 15px; bottom: 15px; }
+    .sheet { padding: 16px 16px 20px; }
+  }
+  
+  @media (max-width: 360px) {
+    /* 针对超小屏幕设备进一步优化文字大小 */
+    .masthead h1 { font-size: 28px; }
+    .bigtab { padding: 10px 14px; font-size: 13px; }
+  }
