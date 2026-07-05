@@ -1,0 +1,986 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>整合速查 · 题库信息站</title>
+<script src="https://cdn.jsdelivr.net/npm/echarts@5.5.0/dist/echarts.min.js"></script>
+<style>
+  :root{
+    --ink:#151414;
+    --paper:#FBFAF8;
+    --rule:#1c1b1b;
+    --accent:#A8321E;
+    --sub:#8a8783;
+    --hair:#e3e0da;
+  }
+  *{box-sizing:border-box;}
+  ::selection{ background:var(--accent); color:#fff; }
+  body{
+    margin:0;
+    background:var(--paper);
+    font-family:"Helvetica Neue",Arial,"PingFang SC","Microsoft YaHei",sans-serif;
+    color:var(--ink);
+    padding-bottom:80px;
+  }
+
+  /* ---------- 刊头 masthead ---------- */
+  .masthead{
+    max-width:640px;
+    margin:0 auto;
+    padding:34px 20px 0;
+    text-align:center;
+  }
+  .kicker{
+    font-size:11px;
+    letter-spacing:.32em;
+    text-transform:uppercase;
+    color:var(--accent);
+    font-weight:600;
+    margin-bottom:10px;
+  }
+  .masthead h1{
+    font-family:Georgia,"Times New Roman","Songti SC",serif;
+    font-size:44px;
+    font-weight:700;
+    letter-spacing:-0.5px;
+    margin:0 0 6px;
+    line-height:1.05;
+  }
+  .masthead .issue{
+    font-size:11.5px;
+    color:var(--sub);
+    letter-spacing:.05em;
+    margin-bottom:22px;
+  }
+  .rule{
+    border:none;
+    border-top:1.5px solid var(--rule);
+    max-width:640px;
+    margin:0 auto;
+  }
+  .rule.thin{ border-top:1px solid var(--hair); }
+
+  /* ---------- 顶部栏（吸顶） ---------- */
+  .topbar{
+    position:sticky;
+    top:0;
+    z-index:50;
+    background:rgba(251,250,248,0.92);
+    backdrop-filter:blur(8px);
+    border-bottom:1px solid var(--hair);
+    padding:12px 20px;
+  }
+  .searchbox{
+    max-width:600px;
+    margin:0 auto;
+    position:relative;
+    display:flex;
+    align-items:center;
+    border-bottom:1.5px solid var(--rule);
+    padding-bottom:6px;
+  }
+  .searchbox .icon{
+    font-size:13px;
+    margin-right:10px;
+    opacity:.55;
+  }
+  .searchbox input{
+    flex:1;
+    border:none;
+    background:none;
+    outline:none;
+    font-size:15px;
+    color:var(--ink);
+    font-family:inherit;
+    letter-spacing:.02em;
+  }
+  .searchbox input::placeholder{ color:#b8b4ad; font-style:italic; }
+  .clear-btn{
+    background:none;border:none;
+    color:var(--sub);
+    font-size:14px;
+    cursor:pointer;
+    padding:2px 4px;
+    display:none;
+  }
+
+  /* ================= 新增：图表模式切换按钮样式 ================= */
+  .graph-toggle-btn {
+    background: var(--ink);
+    color: #fff;
+    border: none;
+    border-radius: 4px;
+    padding: 4px 8px;
+    font-size: 12px;
+    cursor: pointer;
+    margin-left: 8px;
+    transition: all 0.2s;
+  }
+  .graph-toggle-btn:hover { background: var(--accent); }
+  .graph-toggle-btn.active { background: var(--accent); }
+
+  /* ---------- 分类目录 tabs ---------- */
+  .tabs{
+    max-width:600px;
+    margin:12px auto 0;
+    display:flex;
+    gap:2px;
+    overflow-x:auto;
+    scrollbar-width:none;
+    padding:0 0 12px;
+  }
+  .tabs::-webkit-scrollbar{display:none;}
+  .tab{
+    flex:0 0 auto;
+    padding:6px 13px;
+    font-size:12px;
+    letter-spacing:.03em;
+    color:var(--sub);
+    border:1px solid var(--hair);
+    border-radius:2px;
+    cursor:pointer;
+    white-space:nowrap;
+    transition:all .15s ease;
+    background:transparent;
+  }
+  .tab:hover{ border-color:var(--ink); color:var(--ink); }
+  .tab.active{
+    background:var(--ink);
+    border-color:var(--ink);
+    color:#fff;
+  }
+
+  /* ---------- 结果统计 ---------- */
+  .result-bar{
+    max-width:640px;
+    margin:16px auto 0;
+    padding:0 20px;
+    font-size:11px;
+    letter-spacing:.06em;
+    text-transform:uppercase;
+    color:var(--sub);
+  }
+
+  /* ---------- feed / 版面 ---------- */
+  .feed{
+    max-width:640px;
+    margin:0 auto;
+    padding:6px 20px 0;
+    display:flex;
+    flex-direction:column;
+    transition:opacity .28s ease, filter .28s ease;
+  }
+  .feed.melting{
+    opacity:0;
+    filter:blur(6px);
+  }
+
+  /* ================= 新增：图表容器样式 ================= */
+  #graphContainer {
+    max-width: 800px;
+    height: 600px;
+    margin: 20px auto;
+    background: #fff;
+    border-radius: 12px;
+    border: 1px solid var(--hair);
+    display: none; /* 默认隐藏 */
+  }
+
+  .post{
+    padding:22px 0;
+    border-bottom:1px solid var(--hair);
+    animation:rise .38s ease both;
+    position: relative; /* 新增：为操作按钮定位 */
+    transition: background-color 0.2s ease; /* 新增：拖拽视觉反馈 */
+  }
+  .post:last-child{ border-bottom:none; }
+  
+  /* ================= 新增：编辑与删除按钮样式 ================= */
+  .post-actions {
+    position: absolute;
+    right: 0;
+    top: 22px;
+    display: flex;
+    gap: 10px;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+  }
+  .post:hover .post-actions {
+    opacity: 1; /* 鼠标悬浮显示 */
+  }
+  .action-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 14px;
+    opacity: 0.5;
+    padding: 0;
+  }
+  .action-btn:hover { opacity: 1; transform: scale(1.1); }
+  
+  /* ================= 新增：拖拽状态样式 ================= */
+  .post.dragging {
+    opacity: 0.5;
+    background-color: var(--hair);
+    border-radius: 8px;
+    padding-left: 10px;
+    padding-right: 10px;
+  }
+  .post.drag-over {
+    border-top: 2px solid var(--ink);
+  }
+
+  @keyframes rise{
+    from{ opacity:0; filter:blur(5px); transform:translateY(6px); }
+    to{ opacity:1; filter:blur(0); transform:translateY(0); }
+  }
+
+  .post-kicker{
+    font-size:10.5px;
+    letter-spacing:.22em;
+    text-transform:uppercase;
+    color:var(--accent);
+    font-weight:600;
+    margin-bottom:8px;
+  }
+  .post-q{
+    font-family:Georgia,"Times New Roman","Songti SC",serif;
+    font-size:19px;
+    font-weight:700;
+    line-height:1.4;
+    margin-bottom:8px;
+    letter-spacing:-0.2px;
+  }
+  .post-a{
+    font-size:14px;
+    color:var(--ink);
+    line-height:1.6;
+  }
+  .post-a b{
+    font-weight:700;
+    border-bottom:2px solid var(--accent);
+  }
+  .post-extra{
+    margin-top:10px;
+    font-size:12.5px;
+    color:var(--sub);
+    line-height:1.6;
+    padding-left:12px;
+    border-left:2px solid var(--hair);
+  }
+  mark{
+    background:none;
+    color:var(--accent);
+    font-weight:700;
+  }
+
+  .empty{
+    text-align:center;
+    color:var(--sub);
+    padding:80px 20px;
+    font-size:13px;
+    letter-spacing:.03em;
+    font-style:italic;
+  }
+
+  /* ---------- 新增词条：悬浮按钮 + 弹窗 ---------- */
+  .fab{
+    position:fixed;
+    right:20px;
+    bottom:22px;
+    width:50px;height:50px;
+    border-radius:50%;
+    background:var(--ink);
+    color:#fff;
+    border:none;
+    font-size:24px;
+    line-height:1;
+    cursor:pointer;
+    box-shadow:0 4px 14px rgba(0,0,0,.25);
+    z-index:60;
+  }
+  .mask{
+    position:fixed;
+    inset:0;
+    background:rgba(20,18,17,.45);
+    display:none;
+    align-items:flex-end;
+    justify-content:center;
+    z-index:70;
+  }
+  .mask.show{ display:flex; }
+  .sheet{
+    background:var(--paper);
+    width:100%;
+    max-width:640px;
+    border-radius:18px 18px 0 0;
+    padding:20px 20px 26px;
+    animation:slideUp .25s ease;
+  }
+  @keyframes slideUp{
+    from{ transform:translateY(16px); opacity:0; }
+    to{ transform:translateY(0); opacity:1; }
+  }
+  .sheet h3{
+    font-family:Georgia,"Songti SC",serif;
+    font-size:18px;
+    margin:0 0 14px;
+  }
+  .sheet label{
+    display:block;
+    font-size:11px;
+    letter-spacing:.08em;
+    text-transform:uppercase;
+    color:var(--sub);
+    margin:12px 0 4px;
+  }
+  .sheet select, .sheet input, .sheet textarea{
+    width:100%;
+    border:1px solid var(--hair);
+    border-radius:8px;
+    padding:9px 10px;
+    font-size:14px;
+    font-family:inherit;
+    background:#fff;
+    outline:none;
+  }
+  .sheet textarea{ resize:vertical; min-height:50px; }
+  .sheet .row{ display:flex; gap:14px; margin-top:18px; }
+  .sheet button{
+    flex:1;
+    padding:11px;
+    border-radius:8px;
+    border:1px solid var(--ink);
+    font-size:14px;
+    cursor:pointer;
+  }
+  .btn-cancel{ background:#fff; color:var(--ink); }
+  .btn-save{ background:var(--ink); color:#fff; }
+  .sync-tip{
+    font-size:11.5px;
+    color:var(--sub);
+    margin-top:10px;
+    text-align:center;
+  }
+</style>
+</head>
+<body>
+
+<button class="fab" id="fabAdd">＋</button>
+<div class="mask" id="mask">
+  <div class="sheet">
+    <h3 id="sheetTitle">补充新词条</h3> <label>分类</label>
+    <select id="inCat"></select>
+    <label>问题</label>
+    <input id="inQ" placeholder="例如：XX 的信息素是什么？">
+    <label>答案</label>
+    <input id="inA" placeholder="例如：黑檀木">
+    <label>拓展说明（可留空）</label>
+    <textarea id="inExtra" placeholder="补充说明…"></textarea>
+    <div class="row">
+      <button class="btn-cancel" id="btnCancel">取消</button>
+      <button class="btn-save" id="btnSave">保存并同步</button>
+    </div>
+    <div class="sync-tip">三人打开同一链接即可实时看到彼此新增的内容</div>
+  </div>
+</div>
+
+<div class="masthead">
+  <div class="kicker">Field Notes · Reference</div>
+  <h1>整合速查</h1>
+  <div class="issue" id="issueLine">实时检索</div>
+</div>
+<hr class="rule">
+
+<div class="topbar">
+  <div class="searchbox">
+    <span class="icon">⌕</span>
+    <input type="text" id="searchInput" placeholder="输入人名 / 关键词 / 作品…" autocomplete="off">
+    <button class="clear-btn" id="clearBtn">✕</button>
+    <button class="graph-toggle-btn" id="graphToggleBtn">🕸️ 图表模式</button>
+  </div>
+  <div class="tabs" id="storyBar"></div>
+</div>
+
+<div class="result-bar" id="resultBar"></div>
+<div class="feed" id="feed"></div>
+<div id="graphContainer"></div>
+
+<script type="module">
+// ================================================================
+// 云端配置区：如果要脱离 Claude、部署到 GitHub Pages 等外部网站，
+// 需要在这里填入你自己的 Firebase 配置（免费）。
+// 不填也没关系——放在 Claude 里打开时，会自动改用 Claude 自带的云存储。
+// 获取方式：打开 https://console.firebase.google.com
+//   1. 新建项目 → 2. 左侧选「Realtime Database」→ 创建数据库（测试模式）
+//   3. 项目设置 → 常规 → 「你的应用」→ 添加网页应用 → 复制下面这段配置
+// ================================================================
+const firebaseConfig = {
+  apiKey: "AIzaSyD7puv-o7__eL6vqIdIFVZV6quoJvAhxZY",
+  authDomain: "question-bank-188.firebaseapp.com",
+  databaseURL: "https://question-bank-188-default-rtdb.firebaseio.com",
+  projectId: "question-bank-188",
+  storageBucket: "question-bank-188.firebasestorage.app",
+  messagingSenderId: "646415175650",
+  appId: "1:646415175650:web:05463989f6c28427d5b3bb"
+};
+
+let cloudMode = "none"; // "firebase" | "claude" | "none"
+let db, dbRef, dbPush, dbOnValue;
+// ======== 新增：为修改和删除提供 firebase 支持的引用 ========
+let dbUpdate, dbRemove; 
+
+if(firebaseConfig.apiKey){
+  try{
+    const { initializeApp } = await import("https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js");
+    const mod = await import("https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js");
+    dbRef = mod.ref; dbPush = mod.push; dbOnValue = mod.onValue; 
+    dbUpdate = mod.update; dbRemove = mod.remove; // 新增引入
+    const app = initializeApp(firebaseConfig);
+    db = mod.getDatabase(app);
+    cloudMode = "firebase";
+  }catch(e){
+    console.warn("Firebase 初始化失败，将尝试 Claude 云存储", e);
+  }
+}
+if(cloudMode==="none" && typeof window.storage !== "undefined"){
+  cloudMode = "claude";
+}
+
+// ------------------ 数据 ------------------
+const categories = [
+  {key:"all", label:"全部", icon:"✨"},
+  {key:"info", label:"信息素", icon:"🧬"},
+  {key:"meet", label:"初遇", icon:"💫"},
+  {key:"job", label:"职业", icon:"💼"},
+  {key:"pet", label:"宠物", icon:"🐾"},
+  {key:"work", label:"作品设定", icon:"📚"},
+  {key:"order", label:"188顺序", icon:"🔢"},
+  {key:"rel", label:"关系", icon:"💞"},
+  {key:"sport", label:"运动项目", icon:"🏅"},
+  {key:"misc", label:"其他", icon:"🗂️"},
+];
+
+let data = [
+  {cat:"job", q:"李程秀与邵群初遇时，邵群的职业是什么？", a:"厨师", extra:"拓展方向：可整理各作品男主/男二初遇时的职业设定"},
+  {cat:"info", q:"瞿末予的信息素是什么？", a:"黑檀木"},
+  {cat:"info", q:"沈岱的信息素是什么？", a:"昙花", extra:"性别拓展：沈 = Ω(o) 瞿 = α(a)"},
+  {cat:"misc", q:"原炀的父亲是谁？", a:"原立江", extra:"拓展方向：待补充（父辈角色设定还可以怎么深挖？）"},
+  {cat:"work", q:"顾青裴是哪里人？", a:"成都人", extra:"拓展方向：各作品角色的出生地 / 最初闯荡的城市 / 最终定居地 / 故事发生地，可以做成一张对照表"},
+  {cat:"job", q:"《全球实况》男主是谁？", a:"陆澜起", extra:"代号：天蝎 · 曾潜入综艺《一千零一种死亡》卧底"},
+  {cat:"pet", q:"龙血/养父设定中，捡到的小龙人艾尔头发是什么颜色？", a:"金色"},
+  {cat:"meet", q:"丁小伟与周谨行的初遇地点是？", a:"海边（晚上）"},
+  {cat:"meet", q:"黎朔与赵锦辛的初遇地点是？", a:"飞机上", extra:"拓展方向：整理各作品CP的初遇地点合集"},
+  {cat:"pet", q:"李程秀的狗是什么颜色？", a:"巧克力色"},
+  {cat:"work", q:"《爱何辜》是为谁创作的？", a:"何故"},
+  {cat:"work", q:"《爱何辜》出现在哪部作品里？", a:"《一醉经年》"},
+  {cat:"job", q:"何故的职业似乎是？", a:"建筑师？", extra:"存疑：印象中在《火焰戎装》里出现过，需要再核实"},
+  {cat:"job", q:"小说里谁是歌手？", a:"宋居寒"},
+  {cat:"job", q:"周翔最开始的职业是什么？", a:"武打替身", extra:"拓展方向：整理各角色最初的职业设定合集"},
+  {cat:"job", q:"晏明修的职业是什么？", a:"演员"},
+  {cat:"job", q:"宋居寒的职业是什么？", a:"歌手", extra:"注意：题目若问“职业是歌手的是谁”，答案就是宋居寒"},
+  {cat:"rel", q:"《火焰戎装》里的定情信物是什么？", a:"一心一蝎", extra:"拓展方向：整理各作品定情信物 / 确认关系的关键节点"},
+  {cat:"misc", q:"《附加遗产》开篇时，洛羿的交通工具是什么？", a:"自行车"},
+  {cat:"work", q:"《顶级掠食者》里瞿末予的公司主要经营什么？", a:"稀土"},
+  {cat:"order", q:"《火焰戎装》是188系列的第几部？", a:"第10部", extra:"拓展方向：完整梳理全部作品的创作顺序（见下方“188顺序”分类）"},
+  {cat:"work", q:"《逐王》是谁的作品？", a:"水千丞", extra:"拓展方向：整理水千丞的其他作品清单"},
+  {cat:"pet", q:"水千丞的第一只猫叫什么？", a:"阿布（不太确定，待补充确认）"},
+  {cat:"order", q:"188系列目前一共有几对主CP？", a:"11对"},
+  {cat:"order", q:"按创作顺序，188系列最后一部作品是？", a:"《顶级掠食者》"},
+  {cat:"pet", q:"李程秀的狗叫什么名字？", a:"茶杯", extra:"颜色：巧克力色 · 品种：茶杯犬"},
+  {cat:"job", q:"188团长是谁？", a:"邵群"},
+  {cat:"job", q:"188副团长是谁？", a:"宋居寒"},
+  {cat:"rel", q:"简隋英的表弟是谁？", a:"白新羽"},
+  {cat:"misc", q:"这次漫展的主题是什么？", a:"临界心率", extra:"（视具体情况可能调整）"},
+  {cat:"misc", q:"李玉第一次请简隋英吃的东西是什么？", a:"麻辣烫"},
+  {cat:"rel", q:"简隋英与李玉最开始的关系是什么？", a:"弟弟的同学", extra:"拓展方向：整理188各作品角色之间“最初关系”的设定合集"},
+  {cat:"rel", q:"李玉最开始喜欢的人是谁？", a:"简隋林（好像？）", extra:"存疑，需要再确认"},
+  {cat:"job", q:"龙血/养父设定中，单鸣的职业是什么？", a:"雇佣兵 / 特种兵"},
+  {cat:"pet", q:"《寒武再临》里的布偶猫叫什么？", a:"阿布（？）", extra:"存疑，需要再确认"},
+  {cat:"rel", q:"俞风城跟白新羽最虐的桥段发生在哪里？", a:"昆仑山"},
+];
+
+// 188 作品及顺序
+const workOrder = [
+  "《娘娘腔》",
+  "《老婆孩子热炕头》/《灰大叔与混血王子》",
+  "《你却爱着一个他》/《你却爱着一个SB》",
+  "《职业替身》",
+  "《针锋对决》",
+  "《小白杨》",
+  "《附加遗产》",
+  "《一醉经年》",
+  "《谁把谁当真》",
+  "《火焰戎装》",
+  "《顶级掠食者》",
+];
+workOrder.forEach((name, i)=>{
+  data.push({
+    cat:"order",
+    q:`188系列第 ${i+1} 部作品是？`,
+    a:name,
+    extra: i===0 ? "共11部，此为完整创作顺序清单" : undefined
+  });
+});
+
+// 运动项目题库
+const sports = [
+  ["群秀","滑雪"],["周丁","篮球"],["李简","射箭"],["晏周","综合格斗"],
+  ["原顾","射击"],["俞白","棒球"],["洛温","滑板"],["寒故","花样滑冰"],
+  ["妹叔","赛车"],["宫任","网球"],["瞿沈","冲浪"],
+];
+sports.forEach(([who, sport])=>{
+  data.push({cat:"sport", q:`${who} 对应的运动项目是？`, a:sport});
+});
+
+// ------------------ 渲染逻辑 ------------------
+let cloudEntries = [];
+// ======== 新增：为本地和云端数据注入唯一ID以便修改/删除/排序 ========
+function getAllData(){ 
+  let combined = data.concat(cloudEntries); 
+  // 注入全局索引，方便操作时定位
+  combined.forEach((item, idx) => item._globalIndex = idx);
+  return combined;
+}
+
+const feed = document.getElementById("feed");
+const storyBar = document.getElementById("storyBar");
+const resultBar = document.getElementById("resultBar");
+const searchInput = document.getElementById("searchInput");
+const clearBtn = document.getElementById("clearBtn");
+
+let activeCat = "all";
+let keyword = "";
+let isGraphMode = false; // 新增：记录当前是否处于图表模式
+
+function catInfo(key){
+  return categories.find(c=>c.key===key) || categories[categories.length-1];
+}
+
+function renderStories(){
+  storyBar.innerHTML = categories.map(c=>{
+    const activeClass = c.key===activeCat ? "active" : "";
+    return `<div class="tab ${activeClass}" data-cat="${c.key}">${c.icon} ${c.label}</div>`;
+  }).join("");
+  storyBar.querySelectorAll(".tab").forEach(el=>{
+    el.addEventListener("click", ()=>{
+      activeCat = el.dataset.cat;
+      renderStories();
+      render(true);
+    });
+  });
+}
+
+function highlight(text, kw){
+  if(!kw) return text;
+  try{
+    const re = new RegExp(kw.replace(/[.*+?^${}()|[\]\\]/g,'\\$&'), "gi");
+    return text.replace(re, m => `<mark>${m}</mark>`);
+  }catch(e){ return text; }
+}
+
+function paint(){
+  const kw = keyword.trim();
+  const allData = getAllData();
+  let list = allData.filter(item=>{
+    const matchCat = activeCat==="all" || item.cat===activeCat;
+    if(!matchCat) return false;
+    if(!kw) return true;
+    const hay = (item.q + item.a + (item.extra||"")).toLowerCase();
+    return hay.includes(kw.toLowerCase());
+  });
+
+  resultBar.textContent = kw || activeCat!=="all"
+    ? `${list.length} RESULTS`
+    : `${allData.length} ENTRIES · REAL-TIME SEARCH`;
+
+  if(list.length===0){
+    feed.innerHTML = `<div class="empty">— 没有找到相关内容，换个关键词试试 —</div>`;
+    // 若开启了图表模式，清空图表
+    if (isGraphMode) renderGraph(list);
+    return;
+  }
+
+  // ================= 修改：在原版模板中插入了动作按钮和拖拽属性 =================
+  feed.innerHTML = list.map((item,i)=>{
+    const c = catInfo(item.cat);
+    return `<div class="post" draggable="true" data-global-idx="${item._globalIndex}" style="animation-delay:${Math.min(i*22,260)}ms">
+      <div class="post-actions">
+        <button class="action-btn edit-btn" data-idx="${item._globalIndex}" title="编辑">✏️</button>
+        <button class="action-btn del-btn" data-idx="${item._globalIndex}" title="删除">🗑️</button>
+      </div>
+      <div class="post-kicker">${c.icon} ${c.label}</div>
+      <div class="post-q">${highlight(item.q, kw)}</div>
+      <div class="post-a"><b>${highlight(item.a, kw)}</b></div>
+      ${item.extra ? `<div class="post-extra">${highlight(item.extra, kw)}</div>` : ""}
+    </div>`;
+  }).join("");
+
+  // 新增：每次重绘时，如果在图表模式下，更新图表
+  if (isGraphMode) {
+    renderGraph(list);
+  }
+  
+  // 新增：重新绑定拖拽事件
+  bindDragEvents();
+}
+
+// 实时溶解过渡：内容切换时先“熔化”再重新浮现
+let meltTimer = null;
+function render(instant){
+  if(instant){ paint(); return; }
+  clearTimeout(meltTimer);
+  feed.classList.add("melting");
+  meltTimer = setTimeout(()=>{
+    paint();
+    feed.classList.remove("melting");
+  }, 140);
+}
+
+searchInput.addEventListener("input", (e)=>{
+  keyword = e.target.value;
+  clearBtn.style.display = keyword ? "block" : "none";
+  render();
+});
+clearBtn.addEventListener("click", ()=>{
+  searchInput.value = "";
+  keyword = "";
+  clearBtn.style.display = "none";
+  render();
+  searchInput.focus();
+});
+
+function updateIssueLine(){
+  document.getElementById("issueLine").textContent = `共 ${getAllData().length} 条词条 · 实时检索`;
+}
+updateIssueLine();
+renderStories();
+paint();
+
+// ---------- 三人共享云端：新增词条 ----------
+const fabAdd = document.getElementById("fabAdd");
+const mask = document.getElementById("mask");
+const btnCancel = document.getElementById("btnCancel");
+const btnSave = document.getElementById("btnSave");
+const inCat = document.getElementById("inCat");
+const inQ = document.getElementById("inQ");
+const inA = document.getElementById("inA");
+const inExtra = document.getElementById("inExtra");
+const syncTip = document.querySelector(".sync-tip");
+
+// ================ 新增：记录当前正在编辑的词条索引 ================
+let currentEditIndex = -1;
+const sheetTitle = document.getElementById("sheetTitle");
+
+inCat.innerHTML = categories
+  .filter(c=>c.key!=="all")
+  .map(c=>`<option value="${c.key}">${c.icon} ${c.label}</option>`).join("");
+
+const tipText = {
+  firebase: "✅ 已连接云端数据库，三人同时打开会自动实时同步",
+  claude: "已连接 Claude 云存储，其他人刷新页面后可看到",
+  none: "⚠️ 未配置云端，新增内容仅本机可见，关闭页面会丢失"
+};
+syncTip.textContent = tipText[cloudMode];
+
+// 修改添加按钮逻辑：清空表单
+fabAdd.addEventListener("click", ()=> {
+  currentEditIndex = -1; // -1代表新增
+  sheetTitle.textContent = "补充新词条";
+  inCat.value = categories[1].key;
+  inQ.value = ""; inA.value = ""; inExtra.value = "";
+  mask.classList.add("show");
+});
+btnCancel.addEventListener("click", ()=> mask.classList.remove("show"));
+mask.addEventListener("click", (e)=>{ if(e.target===mask) mask.classList.remove("show"); });
+
+// ---- Claude 云存储：一次性加载 ----
+async function loadClaudeEntries(){
+  try{
+    const list = await window.storage.list("entry:", true);
+    if(!list || !list.keys) return;
+    for(const key of list.keys){
+      try{
+        const res = await window.storage.get(key, true);
+        if(res && res.value) {
+          const parsed = JSON.parse(res.value);
+          parsed._cloudKey = key; // 新增：保存Claude的key用于删除/修改
+          cloudEntries.push(parsed);
+        }
+      }catch(e){ /* 单条读取失败忽略 */ }
+    }
+  }catch(e){ console.error("Claude 云存储加载失败", e); }
+}
+
+// ---- Firebase：实时监听，任何人新增都会自动推送给所有人 ----
+function watchFirebase(){
+  const entriesRef = dbRef(db, "entries");
+  dbOnValue(entriesRef, (snapshot)=>{
+    const val = snapshot.val() || {};
+    // 新增：保留 Firebase 的 key 以便后续修改/删除
+    cloudEntries = Object.keys(val).map(k => ({ ...val[k], _cloudKey: k }));
+    updateIssueLine();
+    render(true);
+  });
+}
+
+if(cloudMode==="firebase"){
+  watchFirebase();
+}else if(cloudMode==="claude"){
+  loadClaudeEntries().then(()=>{ updateIssueLine(); render(true); });
+}
+
+// ================= 修改：btnSave 改为处理 新增 和 编辑 两种情况 =================
+btnSave.addEventListener("click", async ()=>{
+  const q = inQ.value.trim();
+  const a = inA.value.trim();
+  if(!q || !a){
+    alert("问题和答案不能为空");
+    return;
+  }
+  const itemData = { cat: inCat.value, q, a, extra: inExtra.value.trim() || undefined };
+
+  btnSave.textContent = "同步中…";
+  btnSave.disabled = true;
+  try{
+    if(currentEditIndex === -1) {
+      // ==== 新增逻辑 ====
+      if(cloudMode==="firebase"){
+        await dbPush(dbRef(db, "entries"), itemData);
+      }else if(cloudMode==="claude"){
+        const key = "entry:" + Date.now() + "_" + Math.random().toString(36).slice(2,7);
+        itemData._cloudKey = key;
+        const result = await window.storage.set(key, JSON.stringify(itemData), true);
+        if(!result) throw new Error("写入失败");
+        cloudEntries.push(itemData);
+        updateIssueLine();
+        render(true);
+      }else{
+        data.push(itemData); // 本地模式存入 data 数组
+        updateIssueLine();
+        render(true);
+      }
+    } else {
+      // ==== 编辑逻辑 ====
+      const allData = getAllData();
+      const targetItem = allData[currentEditIndex];
+      const isCloud = currentEditIndex >= data.length; // 判断是否是云端数据
+
+      if(isCloud) {
+        if(cloudMode==="firebase"){
+          await dbUpdate(dbRef(db, "entries/" + targetItem._cloudKey), itemData);
+        } else if(cloudMode==="claude") {
+          itemData._cloudKey = targetItem._cloudKey;
+          await window.storage.set(targetItem._cloudKey, JSON.stringify(itemData), true);
+          cloudEntries[currentEditIndex - data.length] = itemData;
+          render(true);
+        }
+      } else {
+        // 本地预设数据修改（刷新后重置）
+        data[currentEditIndex] = itemData;
+        render(true);
+      }
+    }
+    inQ.value = ""; inA.value = ""; inExtra.value = "";
+    mask.classList.remove("show");
+  }catch(e){
+    alert("同步失败：" + e.message);
+  }finally{
+    btnSave.textContent = "保存并同步";
+    btnSave.disabled = false;
+  }
+});
+
+// ================= 新增功能核心 1：编辑与删除事件代理 =================
+feed.addEventListener("click", async (e) => {
+  const btn = e.target.closest('.action-btn');
+  if(!btn) return;
+  
+  const idx = parseInt(btn.dataset.idx);
+  const allData = getAllData();
+  const targetItem = allData[idx];
+  const isCloud = idx >= data.length;
+
+  if(btn.classList.contains('edit-btn')) {
+    // 触发编辑
+    currentEditIndex = idx;
+    sheetTitle.textContent = "修改词条";
+    inCat.value = targetItem.cat;
+    inQ.value = targetItem.q;
+    inA.value = targetItem.a;
+    inExtra.value = targetItem.extra || "";
+    mask.classList.add("show");
+  } 
+  else if(btn.classList.contains('del-btn')) {
+    // 触发删除
+    if(!confirm("确定要删除这条记录吗？")) return;
+    try {
+      if(isCloud) {
+        if(cloudMode === "firebase") {
+          await dbRemove(dbRef(db, "entries/" + targetItem._cloudKey));
+        } else if(cloudMode === "claude") {
+          await window.storage.delete(targetItem._cloudKey);
+          cloudEntries.splice(idx - data.length, 1);
+        }
+      } else {
+        // 删除本地数据
+        data.splice(idx, 1);
+      }
+      updateIssueLine();
+      render(true);
+    } catch(err) {
+      alert("删除失败：" + err.message);
+    }
+  }
+});
+
+// ================= 新增功能核心 2：拖拽排序 =================
+let dragStartIndex = -1;
+
+function bindDragEvents() {
+  const posts = document.querySelectorAll('.post');
+  posts.forEach(post => {
+    post.addEventListener('dragstart', function(e) {
+      dragStartIndex = parseInt(this.dataset.globalIdx);
+      this.classList.add('dragging');
+      e.dataTransfer.effectAllowed = 'move';
+    });
+    
+    post.addEventListener('dragover', function(e) {
+      e.preventDefault(); // 必须阻止默认行为才能触发 drop
+      this.classList.add('drag-over');
+      e.dataTransfer.dropEffect = 'move';
+    });
+    
+    post.addEventListener('dragleave', function() {
+      this.classList.remove('drag-over');
+    });
+    
+    post.addEventListener('dragend', function() {
+      this.classList.remove('dragging');
+      posts.forEach(p => p.classList.remove('drag-over'));
+    });
+    
+    post.addEventListener('drop', function(e) {
+      e.stopPropagation();
+      this.classList.remove('drag-over');
+      const dragEndIndex = parseInt(this.dataset.globalIdx);
+      if(dragStartIndex === dragEndIndex) return;
+
+      // 在内存中交换位置 (注意：若是云端环境，纯前端的本地顺序互换在刷新后会恢复)
+      // 如果要将顺序彻底保存到数据库结构会发生巨大变更，因此这里采用前端交互层面的互换
+      const allData = getAllData();
+      const isStartCloud = dragStartIndex >= data.length;
+      const isEndCloud = dragEndIndex >= data.length;
+      
+      let startArr = isStartCloud ? cloudEntries : data;
+      let startArrIdx = isStartCloud ? (dragStartIndex - data.length) : dragStartIndex;
+      let endArr = isEndCloud ? cloudEntries : data;
+      let endArrIdx = isEndCloud ? (dragEndIndex - data.length) : dragEndIndex;
+
+      // 互换元素
+      let temp = startArr[startArrIdx];
+      startArr[startArrIdx] = endArr[endArrIdx];
+      endArr[endArrIdx] = temp;
+
+      render(true);
+    });
+  });
+}
+
+// ================= 新增功能核心 3：图表模式（ECharts 星系连线图） =================
+const graphToggleBtn = document.getElementById("graphToggleBtn");
+const graphContainer = document.getElementById("graphContainer");
+let myChart = null;
+
+graphToggleBtn.addEventListener("click", () => {
+  isGraphMode = !isGraphMode;
+  if(isGraphMode) {
+    graphToggleBtn.classList.add("active");
+    graphToggleBtn.textContent = "返回列表模式";
+    feed.style.display = "none";
+    graphContainer.style.display = "block";
+    renderGraph(getAllData()); // 初始化或更新图表
+  } else {
+    graphToggleBtn.classList.remove("active");
+    graphToggleBtn.textContent = "🕸️ 图表模式";
+    feed.style.display = "flex";
+    graphContainer.style.display = "none";
+    if(myChart) myChart.dispose();
+    myChart = null;
+  }
+});
+
+function renderGraph(currentList) {
+  if(!isGraphMode) return;
+  if(!myChart) {
+    myChart = echarts.init(graphContainer);
+  }
+
+  // 构造图表节点(Nodes)与连线(Links)
+  const nodes = [];
+  const links = [];
+  const rootName = "188 速查网络";
+
+  // 中心节点
+  nodes.push({ name: rootName, symbolSize: 50, itemStyle: { color: '#151414' }, label: { show: true, fontSize: 16 } });
+
+  // 分类节点，去重并添加
+  const usedCats = new Set();
+  currentList.forEach(item => {
+    const catObj = catInfo(item.cat);
+    if(!usedCats.has(item.cat)) {
+      usedCats.add(item.cat);
+      nodes.push({ name: catObj.label, symbolSize: 35, itemStyle: { color: '#A8321E' }, label: { show: true } });
+      links.push({ source: rootName, target: catObj.label });
+    }
+    
+    // 问题节点 (叶子节点)
+    // 为了防止问题名字重复导致图表报错，加上索引
+    const nodeName = item.q; 
+    nodes.push({ 
+      name: nodeName, 
+      value: item.a, // hover 时展示答案
+      symbolSize: 15, 
+      itemStyle: { color: '#8a8783' }, 
+      label: { show: false } 
+    });
+    links.push({ source: catObj.label, target: nodeName });
+  });
+
+  const option = {
+    tooltip: {
+      formatter: function(params) {
+        if(params.data.value) return `<b>Q:</b> ${params.data.name}<br><b>A:</b> <span style="color:#A8321E">${params.data.value}</span>`;
+        return params.name;
+      }
+    },
+    series: [
+      {
+        type: 'graph',
+        layout: 'force',
+        data: nodes,
+        links: links,
+        roam: true, // 允许缩放和拖拽画布
+        label: { position: 'right' },
+        force: {
+          repulsion: 200,    // 节点排斥力
+          edgeLength: [50, 150] // 连线长度范围
+        },
+        lineStyle: { color: 'source', curveness: 0.2 }
+      }
+    ]
+  };
+
+  myChart.setOption(option);
+}
+
+// 监听窗口缩放改变图表尺寸
+window.addEventListener('resize', () => {
+  if(myChart) myChart.resize();
+});
+
+</script>
+</body>
+</html>
