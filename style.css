@@ -397,9 +397,19 @@
     padding-left: 10px;
     padding-right: 10px;
   }
-  .post.drag-over {
-    border-top: 2px solid var(--ink);
+  .post.drag-over-top::before,
+  .post.drag-over-bottom::after {
+    content:"";
+    position:absolute;
+    left:0; right:0;
+    height:4px;
+    background:var(--accent);
+    border-radius:2px;
+    box-shadow:0 0 8px var(--accent);
+    z-index:5;
   }
+  .post.drag-over-top::before { top:-2px; }
+  .post.drag-over-bottom::after { bottom:-2px; }
 
   @keyframes rise{
     from{ opacity:0; filter:blur(5px); transform:translateY(6px); }

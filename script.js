@@ -906,13 +906,105 @@ feed.addEventListener("touchcancel", clearTouchActive);
 
 let dragStartIndex = -1;
 
-// ================= 移动端：长按拖拽排序（原生 draggable 在触屏上无效，需单独实现） =================
+// ================= 拖拽自动滚动 =================
+let autoScrollInterval = null;
+function autoScrollCheck(clientY){
+  const threshold = 80;
+  const vh = window.innerHeight;
+  stopAutoScroll();
+  if(clientY < threshold){
+    const speed = (threshold - clientY) / threshold;
+    autoScrollInterval = setInterval(() => {
+      window.scrollBy(0, -(12 * speed + 3));
+    }, 16);
+  } else if(clientY > vh - threshold){
+    const speed = (clientY - (vh - threshold)) / threshold;
+    autoScrollInterval = setInterval(() => {
+      window.scrollBy(0, 12 * speed + 3);
+    }, 16);
+  }
+}
+function stopAutoScroll(){
+  if(autoScrollInterval){
+    clearInterval(autoScrollInterval);
+    autoScrollInterval = null;
+  }
+}
+
+// ================= 通用：把词条移动到目标位置（同数组内真插入，跨数组则交换） =================
+function moveItem(startIdx, endIdx, insertBefore){
+  if(startIdx === endIdx) return;
+  const isStartCloud = startIdx >= data.length;
+  const isEndCloud = endIdx >= data.length;
+
+  if(isStartCloud === isEndCloud){
+    const arr = isStartCloud ? cloudEntries : data;
+    const sArrIdx = isStartCloud ? (startIdx - data.length) : startIdx;
+    let eArrIdx = isEndCloud ? (endIdx - data.length) : endIdx;
+
+    const [moved] = arr.splice(sArrIdx, 1);
+    if(sArrIdx < eArrIdx) eArrIdx -= 1;
+    const insertIdx = insertBefore ? eArrIdx : eArrIdx + 1;
+    arr.splice(insertIdx, 0, moved);
+  } else {
+    let startArr = isStartCloud ? cloudEntries : data;
+    let startArrIdx = isStartCloud ? (startIdx - data.length) : startIdx;
+    let endArr = isEndCloud ? cloudEntries : data;
+    let endArrIdx = isEndCloud ? (endIdx - data.length) : endIdx;
+    let temp = startArr[startArrIdx];
+    startArr[startArrIdx] = endArr[endArrIdx];
+    endArr[endArrIdx] = temp;
+  }
+  render(true);
+}
+
+// ================= 桌面端：原生拖拽 =================
+function bindDragEvents() {
+  const posts = document.querySelectorAll('.post');
+  let dragInsertBefore = true;
+
+  posts.forEach(post => {
+    post.addEventListener('dragstart', function(e) {
+      dragStartIndex = parseInt(this.dataset.globalIdx);
+      this.classList.add('dragging');
+      e.dataTransfer.effectAllowed = 'move';
+    });
+    post.addEventListener('dragover', function(e) {
+      e.preventDefault();
+      e.dataTransfer.dropEffect = 'move';
+      const rect = this.getBoundingClientRect();
+      const isTopHalf = (e.clientY - rect.top) < rect.height / 2;
+      posts.forEach(p => p.classList.remove('drag-over-top', 'drag-over-bottom'));
+      this.classList.add(isTopHalf ? 'drag-over-top' : 'drag-over-bottom');
+      dragInsertBefore = isTopHalf;
+      autoScrollCheck(e.clientY);
+    });
+    post.addEventListener('dragleave', function() {
+      this.classList.remove('drag-over-top', 'drag-over-bottom');
+    });
+    post.addEventListener('dragend', function() {
+      this.classList.remove('dragging');
+      posts.forEach(p => p.classList.remove('drag-over-top', 'drag-over-bottom'));
+      stopAutoScroll();
+    });
+    post.addEventListener('drop', function(e) {
+      e.stopPropagation();
+      this.classList.remove('drag-over-top', 'drag-over-bottom');
+      stopAutoScroll();
+      const dragEndIndex = parseInt(this.dataset.globalIdx);
+      moveItem(dragStartIndex, dragEndIndex, dragInsertBefore);
+    });
+  });
+}
+
+// ================= 移动端：长按拖拽排序 =================
 let longPressTimer = null;
 let dragTouchItem = null;
 let dragTouchStartX = 0;
 let dragTouchStartY = 0;
 let isTouchDragging = false;
 let touchDragOverItem = null;
+let touchInsertBefore = true;
 
 feed.addEventListener("touchstart", function(e){
   const item = e.target.closest('.post');
@@ -935,7 +1027,6 @@ feed.addEventListener("touchmove", function(e){
   const touch = e.touches[0];
 
   if(!isTouchDragging){
-    // 手指移动超过阈值，说明是滑动查看而非长按拖拽，取消长按判定
     if(Math.abs(touch.clientX - dragTouchStartX) > 10 || Math.abs(touch.clientY - dragTouchStartY) > 10){
       clearTimeout(longPressTimer);
       dragTouchItem = null;
@@ -943,40 +1034,35 @@ feed.addEventListener("touchmove", function(e){
     return;
   }
 
-  // 已进入拖拽模式：阻止页面滚动，实时高亮当前所在的目标词条
-  e.preventDefault();
+  e.preventDefault(); // 拖拽中禁止页面自身的滚动手势，改由 autoScrollCheck 接管
+  autoScrollCheck(touch.clientY);
+
   const el = document.elementFromPoint(touch.clientX, touch.clientY);
   const overItem = el ? el.closest('.post') : null;
   if(touchDragOverItem && touchDragOverItem !== overItem){
-    touchDragOverItem.classList.remove('drag-over');
+    touchDragOverItem.classList.remove('drag-over-top', 'drag-over-bottom');
     touchDragOverItem = null;
   }
   if(overItem && overItem !== dragTouchItem){
-    overItem.classList.add('drag-over');
+    const rect = overItem.getBoundingClientRect();
+    const isTopHalf = (touch.clientY - rect.top) < rect.height / 2;
+    overItem.classList.remove('drag-over-top', 'drag-over-bottom');
+    overItem.classList.add(isTopHalf ? 'drag-over-top' : 'drag-over-bottom');
+    touchInsertBefore = isTopHalf;
     touchDragOverItem = overItem;
   }
 }, {passive:false});
 
 function finishTouchDrag(){
   clearTimeout(longPressTimer);
+  stopAutoScroll();
   if(isTouchDragging && dragTouchItem){
     dragTouchItem.classList.remove('dragging');
     if(touchDragOverItem){
-      touchDragOverItem.classList.remove('drag-over');
+      touchDragOverItem.classList.remove('drag-over-top', 'drag-over-bottom');
       const startIdx = parseInt(dragTouchItem.dataset.globalIdx);
       const endIdx = parseInt(touchDragOverItem.dataset.globalIdx);
-      if(startIdx !== endIdx){
-        const isStartCloud = startIdx >= data.length;
-        const isEndCloud = endIdx >= data.length;
-        let startArr = isStartCloud ? cloudEntries : data;
-        let startArrIdx = isStartCloud ? (startIdx - data.length) : startIdx;
-        let endArr = isEndCloud ? cloudEntries : data;
-        let endArrIdx = isEndCloud ? (endIdx - data.length) : endIdx;
-        let temp = startArr[startArrIdx];
-        startArr[startArrIdx] = endArr[endArrIdx];
-        endArr[endArrIdx] = temp;
-        render(true);
-      }
+      moveItem(startIdx, endIdx, touchInsertBefore);
     }
   }
   isTouchDragging = false;
@@ -985,50 +1071,6 @@ function finishTouchDrag(){
 }
 feed.addEventListener("touchend", finishTouchDrag);
 feed.addEventListener("touchcancel", finishTouchDrag);
-
-function bindDragEvents() {
-  const posts = document.querySelectorAll('.post');
-  posts.forEach(post => {
-    post.addEventListener('dragstart', function(e) {
-      dragStartIndex = parseInt(this.dataset.globalIdx);
-      this.classList.add('dragging');
-      e.dataTransfer.effectAllowed = 'move';
-    });
-    post.addEventListener('dragover', function(e) {
-      e.preventDefault();
-      this.classList.add('drag-over');
-      e.dataTransfer.dropEffect = 'move';
-    });
-    post.addEventListener('dragleave', function() {
-      this.classList.remove('drag-over');
-    });
-    post.addEventListener('dragend', function() {
-      this.classList.remove('dragging');
-      posts.forEach(p => p.classList.remove('drag-over'));
-    });
-    post.addEventListener('drop', function(e) {
-      e.stopPropagation();
-      this.classList.remove('drag-over');
-      const dragEndIndex = parseInt(this.dataset.globalIdx);
-      if(dragStartIndex === dragEndIndex) return;
-
-      const allData = getAllData();
-      const isStartCloud = dragStartIndex >= data.length;
-      const isEndCloud = dragEndIndex >= data.length;
-      
-      let startArr = isStartCloud ? cloudEntries : data;
-      let startArrIdx = isStartCloud ? (dragStartIndex - data.length) : dragStartIndex;
-      let endArr = isEndCloud ? cloudEntries : data;
-      let endArrIdx = isEndCloud ? (dragEndIndex - data.length) : dragEndIndex;
-
-      let temp = startArr[startArrIdx];
-      startArr[startArrIdx] = endArr[endArrIdx];
-      endArr[endArrIdx] = temp;
-
-      render(true);
-    });
-  });
-}
 
 // ================= 图表与文档模式切换 =================
 const graphToggleBtn = document.getElementById("graphToggleBtn");
