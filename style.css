@@ -318,6 +318,8 @@
     border-radius: 12px;
     border: 1px solid var(--hair);
     display: none; /* 默认隐藏 */
+    touch-action: none; /* 防止图表缩放/拖动时触发页面滚动 */
+    overscroll-behavior: contain;
   }
   .graph-mode-switch{
     max-width:800px;
