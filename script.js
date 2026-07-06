@@ -1226,6 +1226,7 @@ let quizIndex = 0;
 let quizAnswers = [];
 let quizTimer = null;
 let quizTimeLeft = QUIZ_TOTAL_TIME;
+let quizStartTimestamp = 0;
 const QUIZ_TIMER_CIRCUMFERENCE = 2 * Math.PI * 45;
 
 function shuffleArray(arr){
@@ -1281,18 +1282,29 @@ quizOptions.addEventListener("click", (e) => {
 });
 
 function startQuizTimer(){
+  quizStartTimestamp = Date.now();
   quizTimeLeft = QUIZ_TOTAL_TIME;
   updateQuizTimerUI();
   clearInterval(quizTimer);
-  quizTimer = setInterval(() => {
-    quizTimeLeft--;
-    updateQuizTimerUI();
-    if(quizTimeLeft <= 0){
-      clearInterval(quizTimer);
-      finishQuiz();
-    }
-  }, 1000);
+  quizTimer = setInterval(quizTick, 250);
 }
+
+function quizTick(){
+  const elapsed = Math.floor((Date.now() - quizStartTimestamp) / 1000);
+  quizTimeLeft = Math.max(QUIZ_TOTAL_TIME - elapsed, 0);
+  updateQuizTimerUI();
+  if(quizTimeLeft <= 0){
+    clearInterval(quizTimer);
+    finishQuiz();
+  }
+}
+
+// 切屏/切后台再切回来时，立刻用真实时间校正一次，避免计时器被浏览器节流导致不准
+document.addEventListener("visibilitychange", () => {
+  if(document.visibilityState === "visible" && quizMask.classList.contains("show")){
+    quizTick();
+  }
+});
 
 function updateQuizTimerUI(){
   const m = String(Math.max(Math.floor(quizTimeLeft / 60), 0)).padStart(2, "0");
