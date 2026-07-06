@@ -881,6 +881,7 @@ let touchActiveItem = null;
 feed.addEventListener("touchstart", handleTouchHover, {passive:true});
 feed.addEventListener("touchmove", handleTouchHover, {passive:true});
 function handleTouchHover(e){
+  if(isTouchDragging) return;
   const touch = e.touches[0];
   if(!touch) return;
   const el = document.elementFromPoint(touch.clientX, touch.clientY);
@@ -904,6 +905,87 @@ feed.addEventListener("touchend", clearTouchActive);
 feed.addEventListener("touchcancel", clearTouchActive);
 
 let dragStartIndex = -1;
+
+// ================= 移动端：长按拖拽排序（原生 draggable 在触屏上无效，需单独实现） =================
+let longPressTimer = null;
+let dragTouchItem = null;
+let dragTouchStartX = 0;
+let dragTouchStartY = 0;
+let isTouchDragging = false;
+let touchDragOverItem = null;
+
+feed.addEventListener("touchstart", function(e){
+  const item = e.target.closest('.post');
+  if(!item) return;
+  if(e.target.closest('.action-btn')) return; // 点在编辑/删除图标上不触发拖拽
+  const touch = e.touches[0];
+  dragTouchStartX = touch.clientX;
+  dragTouchStartY = touch.clientY;
+  dragTouchItem = item;
+  clearTimeout(longPressTimer);
+  longPressTimer = setTimeout(() => {
+    isTouchDragging = true;
+    item.classList.add('dragging');
+    if(navigator.vibrate) navigator.vibrate(30);
+  }, 450);
+}, {passive:true});
+
+feed.addEventListener("touchmove", function(e){
+  if(!dragTouchItem) return;
+  const touch = e.touches[0];
+
+  if(!isTouchDragging){
+    // 手指移动超过阈值，说明是滑动查看而非长按拖拽，取消长按判定
+    if(Math.abs(touch.clientX - dragTouchStartX) > 10 || Math.abs(touch.clientY - dragTouchStartY) > 10){
+      clearTimeout(longPressTimer);
+      dragTouchItem = null;
+    }
+    return;
+  }
+
+  // 已进入拖拽模式：阻止页面滚动，实时高亮当前所在的目标词条
+  e.preventDefault();
+  const el = document.elementFromPoint(touch.clientX, touch.clientY);
+  const overItem = el ? el.closest('.post') : null;
+  if(touchDragOverItem && touchDragOverItem !== overItem){
+    touchDragOverItem.classList.remove('drag-over');
+    touchDragOverItem = null;
+  }
+  if(overItem && overItem !== dragTouchItem){
+    overItem.classList.add('drag-over');
+    touchDragOverItem = overItem;
+  }
+}, {passive:false});
+
+function finishTouchDrag(){
+  clearTimeout(longPressTimer);
+  if(isTouchDragging && dragTouchItem){
+    dragTouchItem.classList.remove('dragging');
+    if(touchDragOverItem){
+      touchDragOverItem.classList.remove('drag-over');
+      const startIdx = parseInt(dragTouchItem.dataset.globalIdx);
+      const endIdx = parseInt(touchDragOverItem.dataset.globalIdx);
+      if(startIdx !== endIdx){
+        const isStartCloud = startIdx >= data.length;
+        const isEndCloud = endIdx >= data.length;
+        let startArr = isStartCloud ? cloudEntries : data;
+        let startArrIdx = isStartCloud ? (startIdx - data.length) : startIdx;
+        let endArr = isEndCloud ? cloudEntries : data;
+        let endArrIdx = isEndCloud ? (endIdx - data.length) : endIdx;
+        let temp = startArr[startArrIdx];
+        startArr[startArrIdx] = endArr[endArrIdx];
+        endArr[endArrIdx] = temp;
+        render(true);
+      }
+    }
+  }
+  isTouchDragging = false;
+  dragTouchItem = null;
+  touchDragOverItem = null;
+}
+feed.addEventListener("touchend", finishTouchDrag);
+feed.addEventListener("touchcancel", finishTouchDrag);
+
 function bindDragEvents() {
   const posts = document.querySelectorAll('.post');
   posts.forEach(post => {
