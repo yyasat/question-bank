@@ -43,6 +43,7 @@
     <button class="clear-btn" id="clearBtn">✕</button>
     <button class="graph-toggle-btn" id="docToggleBtn">📄 文档模式</button>
     <button class="graph-toggle-btn" id="graphToggleBtn">🕸️ 图表模式</button>
+    <button class="graph-toggle-btn" id="quizToggleBtn">📝 答题模式</button>
   </div>
   <div class="tabs" id="storyBar"></div>
 </div>
@@ -59,6 +60,57 @@
   <button class="graph-mode-btn" data-mode="mindmap">🌳 思维导图</button>
 </div>
 <div id="graphContainer"></div>
+
+<!-- 设置答题选项弹窗 -->
+<div class="mask" id="quizSetMask">
+  <div class="sheet">
+    <h3>设置答题选项</h3>
+    <label>题目</label>
+    <input id="quizSetQ" disabled>
+    <label>正确答案</label>
+    <input id="quizSetCorrect" disabled>
+    <label>错误选项 1</label>
+    <input id="quizWrong1" placeholder="填写一个错误答案">
+    <label>错误选项 2</label>
+    <input id="quizWrong2" placeholder="填写另一个错误答案">
+    <div class="row">
+      <button class="btn-cancel" id="quizSetCancel">取消</button>
+      <button class="btn-save" id="quizSetSave">保存</button>
+    </div>
+  </div>
+</div>
+
+<!-- 答题模式界面 -->
+<div class="quiz-mask" id="quizMask">
+  <div class="quiz-panel">
+    <button class="quiz-close-btn" id="quizCloseBtn">✕</button>
+    <div class="quiz-timer-ring">
+      <svg class="quiz-timer-svg" viewBox="0 0 100 100">
+        <circle class="quiz-timer-bg" cx="50" cy="50" r="45"></circle>
+        <circle class="quiz-timer-fg" id="quizTimerFg" cx="50" cy="50" r="45"></circle>
+      </svg>
+      <div class="quiz-timer-text">
+        <div class="quiz-timer-label">剩余时间</div>
+        <div class="quiz-timer-value" id="quizTimerValue">01:00</div>
+      </div>
+    </div>
+    <div class="quiz-progress-wrap">
+      <div class="quiz-progress-label">答题进度 <span id="quizProgressText">1 / 5</span></div>
+      <div class="quiz-progress-bar"><div class="quiz-progress-fill" id="quizProgressFill"></div></div>
+    </div>
+    <div class="quiz-question" id="quizQuestion"></div>
+    <div class="quiz-options" id="quizOptions"></div>
+  </div>
+</div>
+
+<!-- 卷轴结果弹窗 -->
+<div class="scroll-mask" id="scrollMask">
+  <div class="scroll-paper">
+    <div class="scroll-title" id="scrollTitle"></div>
+    <div class="scroll-content" id="scrollContent"></div>
+    <button class="scroll-close-btn" id="scrollCloseBtn">关闭</button>
+  </div>
+</div>
 
 <script type="module" src="script.js"></script>
 </body>

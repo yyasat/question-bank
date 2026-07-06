@@ -574,6 +574,7 @@ function paint(){
       const bodyHtml = items.map(item => `
         <div class="doc-item">
           <div class="post-actions">
+            <button class="action-btn quiz-set-btn ${item.wrongOptions && item.wrongOptions.length===2 ? 'quiz-set-done' : ''}" data-idx="${item._globalIndex}" title="设置答题选项">🔍</button>
             <button class="action-btn edit-btn" data-idx="${item._globalIndex}" title="编辑">✏️</button>
             <button class="action-btn del-btn" data-idx="${item._globalIndex}" title="删除">🗑️</button>
           </div>
@@ -604,6 +605,7 @@ function paint(){
     const c = catInfo(item.cat);
     return `<div class="post" draggable="true" data-global-idx="${item._globalIndex}" style="animation-delay:${Math.min(i*22,260)}ms">
       <div class="post-actions">
+        <button class="action-btn quiz-set-btn ${item.wrongOptions && item.wrongOptions.length===2 ? 'quiz-set-done' : ''}" data-idx="${item._globalIndex}" title="设置答题选项">🔍</button>
         <button class="action-btn edit-btn" data-idx="${item._globalIndex}" title="编辑">✏️</button>
         <button class="action-btn del-btn" data-idx="${item._globalIndex}" title="删除">🗑️</button>
       </div>
@@ -838,6 +840,16 @@ feed.addEventListener("click", async (e) => {
   const allData = getAllData();
   const targetItem = allData[idx];
   const isCloud = idx >= data.length;
+
+  if(btn.classList.contains('quiz-set-btn')) {
+    quizSetIndex = idx;
+    quizSetQ.value = targetItem.q;
+    quizSetCorrect.value = targetItem.a;
+    quizWrong1.value = (targetItem.wrongOptions && targetItem.wrongOptions[0]) || "";
+    quizWrong2.value = (targetItem.wrongOptions && targetItem.wrongOptions[1]) || "";
+    quizSetMask.classList.add("show");
+    return;
+  }
 
   if(btn.classList.contains('edit-btn')) {
     currentEditIndex = idx;
@@ -1135,6 +1147,196 @@ graphModeSwitch.querySelectorAll(".graph-mode-btn").forEach(btn=>{
     btn.classList.add("active");
     renderGraph(getAllData());
   });
+});
+
+// ================= 通用：更新某个词条的任意字段（用于保存答题选项） =================
+async function updateItemFields(idx, patchFields){
+  const allData = getAllData();
+  const targetItem = allData[idx];
+  const isCloud = idx >= data.length;
+  const merged = { ...targetItem, ...patchFields };
+  delete merged._globalIndex;
+
+  if(isCloud){
+    if(cloudMode === "firebase"){
+      await dbUpdate(dbRef(db, "entries/" + targetItem._cloudKey), patchFields);
+      cloudEntries[idx - data.length] = merged;
+    } else if(cloudMode === "claude"){
+      const cloudKey = targetItem._cloudKey;
+      const full = { ...merged, _cloudKey: cloudKey };
+      await window.storage.set(cloudKey, JSON.stringify(full), true);
+      cloudEntries[idx - data.length] = full;
+    }
+  } else {
+    data[idx] = merged;
+  }
+  render(true);
+}
+
+// ================= 设置答题选项弹窗 =================
+const quizSetMask = document.getElementById("quizSetMask");
+const quizSetQ = document.getElementById("quizSetQ");
+const quizSetCorrect = document.getElementById("quizSetCorrect");
+const quizWrong1 = document.getElementById("quizWrong1");
+const quizWrong2 = document.getElementById("quizWrong2");
+const quizSetCancel = document.getElementById("quizSetCancel");
+const quizSetSave = document.getElementById("quizSetSave");
+let quizSetIndex = -1;
+
+quizSetCancel.addEventListener("click", () => {
+  quizSetMask.classList.remove("show");
+});
+
+quizSetSave.addEventListener("click", async () => {
+  const w1 = quizWrong1.value.trim();
+  const w2 = quizWrong2.value.trim();
+  if(!w1 || !w2){ alert("两个错误选项都要填写"); return; }
+  quizSetSave.textContent = "保存中…";
+  quizSetSave.disabled = true;
+  try{
+    await updateItemFields(quizSetIndex, { wrongOptions: [w1, w2] });
+    quizSetMask.classList.remove("show");
+  }catch(e){
+    alert("保存失败：" + e.message);
+  }finally{
+    quizSetSave.textContent = "保存";
+    quizSetSave.disabled = false;
+  }
+});
+
+// ================= 答题模式 =================
+const quizToggleBtn = document.getElementById("quizToggleBtn");
+const quizMask = document.getElementById("quizMask");
+const quizCloseBtn = document.getElementById("quizCloseBtn");
+const quizTimerFg = document.getElementById("quizTimerFg");
+const quizTimerValue = document.getElementById("quizTimerValue");
+const quizProgressText = document.getElementById("quizProgressText");
+const quizProgressFill = document.getElementById("quizProgressFill");
+const quizQuestion = document.getElementById("quizQuestion");
+const quizOptions = document.getElementById("quizOptions");
+const scrollMask = document.getElementById("scrollMask");
+const scrollTitle = document.getElementById("scrollTitle");
+const scrollContent = document.getElementById("scrollContent");
+const scrollCloseBtn = document.getElementById("scrollCloseBtn");
+
+const QUIZ_QUESTION_COUNT = 5;
+const QUIZ_TOTAL_TIME = 60;
+let quizPool = [];
+let quizIndex = 0;
+let quizAnswers = [];
+let quizTimer = null;
+let quizTimeLeft = QUIZ_TOTAL_TIME;
+const QUIZ_TIMER_CIRCUMFERENCE = 2 * Math.PI * 45;
+
+function shuffleArray(arr){
+  return [...arr].sort(() => Math.random() - 0.5);
+}
+
+quizToggleBtn.addEventListener("click", () => {
+  const allData = getAllData();
+  const eligible = allData.filter(it => it.wrongOptions && it.wrongOptions.length === 2 && it.wrongOptions[0] && it.wrongOptions[1]);
+  if(eligible.length < QUIZ_QUESTION_COUNT){
+    alert(`已设置答题选项的词条只有 ${eligible.length} 条，至少需要 ${QUIZ_QUESTION_COUNT} 条才能开始答题模式。\n点击词条旁的 🔍 图标即可设置。`);
+    return;
+  }
+  const picked = shuffleArray(eligible).slice(0, QUIZ_QUESTION_COUNT);
+  quizPool = picked.map(it => ({
+    q: it.q,
+    correct: it.a,
+    options: shuffleArray([it.a, it.wrongOptions[0], it.wrongOptions[1]])
+  }));
+  quizIndex = 0;
+  quizAnswers = new Array(QUIZ_QUESTION_COUNT).fill(null);
+  quizMask.classList.add("show");
+  renderQuizQuestion();
+  startQuizTimer();
+});
+
+function renderQuizQuestion(){
+  const item = quizPool[quizIndex];
+  quizProgressText.textContent = `${quizIndex + 1} / ${QUIZ_QUESTION_COUNT}`;
+  quizProgressFill.style.width = `${(quizIndex / QUIZ_QUESTION_COUNT) * 100}%`;
+  quizQuestion.textContent = `${quizIndex + 1}. ${item.q}`;
+  const letters = ["A", "B", "C"];
+  quizOptions.innerHTML = item.options.map((opt, i) => `
+    <button class="quiz-option-btn" data-opt-index="${i}">
+      <span class="quiz-option-letter">${letters[i]}</span>
+      <span class="quiz-option-text">${opt}</span>
+    </button>
+  `).join("");
+}
+
+quizOptions.addEventListener("click", (e) => {
+  const btn = e.target.closest(".quiz-option-btn");
+  if(!btn) return;
+  const optIdx = parseInt(btn.dataset.optIndex);
+  quizAnswers[quizIndex] = quizPool[quizIndex].options[optIdx];
+  if(quizIndex < QUIZ_QUESTION_COUNT - 1){
+    quizIndex++;
+    renderQuizQuestion();
+  } else {
+    quizProgressFill.style.width = `100%`;
+    finishQuiz();
+  }
+});
+
+function startQuizTimer(){
+  quizTimeLeft = QUIZ_TOTAL_TIME;
+  updateQuizTimerUI();
+  clearInterval(quizTimer);
+  quizTimer = setInterval(() => {
+    quizTimeLeft--;
+    updateQuizTimerUI();
+    if(quizTimeLeft <= 0){
+      clearInterval(quizTimer);
+      finishQuiz();
+    }
+  }, 1000);
+}
+
+function updateQuizTimerUI(){
+  const m = String(Math.max(Math.floor(quizTimeLeft / 60), 0)).padStart(2, "0");
+  const s = String(Math.max(quizTimeLeft % 60, 0)).padStart(2, "0");
+  quizTimerValue.textContent = `${m}:${s}`;
+  const pct = Math.max(quizTimeLeft, 0) / QUIZ_TOTAL_TIME;
+  quizTimerFg.style.strokeDasharray = QUIZ_TIMER_CIRCUMFERENCE;
+  quizTimerFg.style.strokeDashoffset = QUIZ_TIMER_CIRCUMFERENCE * (1 - pct);
+}
+
+function finishQuiz(){
+  clearInterval(quizTimer);
+  quizMask.classList.remove("show");
+
+  const wrongList = [];
+  quizPool.forEach((item, i) => {
+    if(quizAnswers[i] !== item.correct){
+      wrongList.push({ q: item.q, correct: item.correct, chosen: quizAnswers[i] || "（未作答）" });
+    }
+  });
+
+  if(wrongList.length === 0){
+    scrollTitle.textContent = "🎉 全部答对，挑战通过！";
+    scrollContent.innerHTML = `<div class="scroll-item"><div class="scroll-your">恭喜，本次 ${QUIZ_QUESTION_COUNT} 道题全部正确。</div></div>`;
+  } else {
+    scrollTitle.textContent = "很遗憾，未能全部通过";
+    scrollContent.innerHTML = wrongList.map(w => `
+      <div class="scroll-item">
+        <div class="scroll-q">${w.q}</div>
+        <div class="scroll-your">你的答案：${w.chosen}</div>
+        <div class="scroll-correct">正确答案：${w.correct}</div>
+      </div>
+    `).join("");
+  }
+  scrollMask.classList.add("show");
+}
+
+quizCloseBtn.addEventListener("click", () => {
+  clearInterval(quizTimer);
+  quizMask.classList.remove("show");
+});
+
+scrollCloseBtn.addEventListener("click", () => {
+  scrollMask.classList.remove("show");
 });
 
 function renderGraph(currentList) {
