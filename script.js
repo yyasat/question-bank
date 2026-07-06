@@ -544,9 +544,10 @@ function paint(){
     const matchCat = activeCat==="all" || item.cat===activeCat;
     if(!matchCat) return false;
     if(!kw) return true;
-    const hay = (item.q + item.a + (item.extra||"")).toLowerCase();
-    if(hay.includes(kwLower)) return true;
-    if(fuzzyPinyinMatch(item, kwLower)) return true;
+    const hay = (item.q + item.a + (item.extra||"")).toLowerCase().replace(/\s+/g, "");
+    const kwNoSpace = kwLower.replace(/\s+/g, "");
+    if(hay.includes(kwNoSpace)) return true;
+    if(fuzzyPinyinMatch(item, kwNoSpace)) return true;
     return false;
   });
 
