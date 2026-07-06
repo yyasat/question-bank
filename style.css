@@ -279,9 +279,10 @@
   .doc-item:last-child {
     border-bottom: none;
   }
-  .doc-item:hover .post-actions {
+  .doc-item.active .post-actions {
     opacity: 1;
   }
+  .doc-item{ cursor: pointer; }
   .doc-item-q {
     font-family: Georgia, "Times New Roman", "Songti SC", serif;
     font-size: 17px;
@@ -360,9 +361,10 @@
     transition: opacity 0.2s ease;
     z-index: 10;
   }
-  .post:hover .post-actions {
-    opacity: 1; /* 鼠标悬浮显示 */
+  .post.active .post-actions {
+    opacity: 1; /* 点击词条后显示 */
   }
+  .post{ cursor: pointer; }
   /* 为文档模式小词条内的按钮单独微调定位 */
   .doc-item .post-actions {
     top: 16px;
@@ -556,10 +558,7 @@
     .masthead h1 { font-size: 34px; }
     .topbar { padding: 10px 15px; }
 
-    /* 移动端没有鼠标Hover，需要强制显示操作按钮，并给文字留出右边距防止重叠 */
-    .post-actions, .doc-item .post-actions {
-      opacity: 1; 
-    }
+    /* 移动端同样为点击显示，给文字留出右边距防止重叠 */
     .post { padding-right: 55px; }
     .doc-item { padding-right: 55px; }
     

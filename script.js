@@ -832,7 +832,17 @@ btnSave.addEventListener("click", async ()=>{
 
 feed.addEventListener("click", async (e) => {
   const btn = e.target.closest('.action-btn');
-  if(!btn) return;
+
+  // 点击词条本身（非图标按钮）时，切换显示编辑/删除图标
+  if(!btn){
+    const item = e.target.closest('.post, .doc-item');
+    if(item){
+      const wasActive = item.classList.contains('active');
+      feed.querySelectorAll('.post.active, .doc-item.active').forEach(el => el.classList.remove('active'));
+      if(!wasActive) item.classList.add('active');
+    }
+    return;
+  }
   
   const idx = parseInt(btn.dataset.idx);
   const allData = getAllData();
@@ -864,6 +874,11 @@ feed.addEventListener("click", async (e) => {
       updateIssueLine(); render(true);
     } catch(err) { alert("删除失败：" + err.message); }
   }
+});
+
+document.addEventListener("click", (e) => {
+  if(e.target.closest('.post, .doc-item')) return;
+  feed.querySelectorAll('.post.active, .doc-item.active').forEach(el => el.classList.remove('active'));
 });
 
 let dragStartIndex = -1;
