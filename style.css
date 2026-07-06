@@ -68,17 +68,20 @@
     margin:0 auto;
     position:relative;
     display:flex;
+    flex-wrap:wrap;
     align-items:center;
+    gap:10px 10px;
     border-bottom:1.5px solid var(--rule);
-    padding-bottom:6px;
+    padding-bottom:10px;
   }
   .searchbox .icon{
     font-size:13px;
-    margin-right:10px;
     opacity:.55;
+    flex:0 0 auto;
   }
   .searchbox input{
-    flex:1;
+    flex:1 1 160px;
+    min-width:100px;
     border:none;
     background:none;
     outline:none;
@@ -95,23 +98,28 @@
     cursor:pointer;
     padding:2px 4px;
     display:none;
+    flex:0 0 auto;
   }
 
-  /* ================= 新增：图表模式与文档模式切换按钮样式 ================= */
+  /* ================= 模式切换：药丸形分段按钮，自动换到搜索框下一行 ================= */
   .graph-toggle-btn {
-    background: var(--ink);
-    color: #fff;
-    border: none;
-    border-radius: 4px;
-    padding: 4px 8px;
-    font-size: 12px;
-    cursor: pointer;
-    margin-left: 8px;
-    transition: all 0.2s;
-    white-space: nowrap;
+    flex:1 1 50%;
+    box-sizing:border-box;
+    background:#fff;
+    color:var(--ink);
+    border:1.5px solid var(--ink);
+    border-radius:20px;
+    padding:8px 12px;
+    font-size:12.5px;
+    font-weight:600;
+    letter-spacing:.02em;
+    cursor:pointer;
+    white-space:nowrap;
+    text-align:center;
+    transition:all .15s ease;
   }
-  .graph-toggle-btn:hover { background: var(--accent); }
-  .graph-toggle-btn.active { background: var(--accent); }
+  .graph-toggle-btn:hover { background:#f2f0ec; }
+  .graph-toggle-btn.active { background:var(--ink); color:#fff; }
 
   /* ---------- 分类目录 tabs ---------- */
   .tabs{
@@ -528,31 +536,9 @@
 
   /* ================= 🌟 绝对无损新增：自适应屏幕大小系统 ================= */
   @media (max-width: 580px) {
-    /* 解决搜索栏右上角按钮挤压/凸出问题 */
-    .searchbox {
-      flex-wrap: wrap; /* 允许超出宽度时自然换行 */
-    }
-    .searchbox .icon {
-      flex: 0 0 auto;
-    }
+    /* 解决搜索栏输入框在窄屏下被挤压问题 */
     .searchbox input {
-      flex: 1 1 0%;
-      min-width: 120px; /* 确保输入框不被过度挤压 */
-    }
-    .searchbox .clear-btn {
-      flex: 0 0 auto;
-    }
-    /* 强行将两个模式切换按钮挤压至第二排，并满宽对齐 */
-    #docToggleBtn, #graphToggleBtn {
-      flex: 1 1 40%;
-      margin-left: 0;
-      margin-top: 8px;
-      margin-bottom: 2px;
-      text-align: center;
-      padding: 6px;
-    }
-    #docToggleBtn {
-      margin-right: 6px;
+      min-width: 100px;
     }
 
     /* 优化手机端整体留白 */
