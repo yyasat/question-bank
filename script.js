@@ -830,23 +830,9 @@ btnSave.addEventListener("click", async ()=>{
   }
 });
 
-let lastTouchTime = 0;
-
 feed.addEventListener("click", async (e) => {
   const btn = e.target.closest('.action-btn');
-
-  // 点击词条本身（非图标按钮）时，切换显示编辑/删除图标
-  if(!btn){
-    // 触屏滑动已经处理过显示逻辑，这里不再重复切换，避免图标一闪即消失
-    if(Date.now() - lastTouchTime < 500) return;
-    const item = e.target.closest('.post, .doc-item');
-    if(item){
-      const wasActive = item.classList.contains('active');
-      feed.querySelectorAll('.post.active, .doc-item.active').forEach(el => el.classList.remove('active'));
-      if(!wasActive) item.classList.add('active');
-    }
-    return;
-  }
+  if(!btn) return;
   
   const idx = parseInt(btn.dataset.idx);
   const allData = getAllData();
@@ -880,12 +866,17 @@ feed.addEventListener("click", async (e) => {
   }
 });
 
-document.addEventListener("click", (e) => {
-  if(e.target.closest('.post, .doc-item')) return;
-  feed.querySelectorAll('.post.active, .doc-item.active').forEach(el => el.classList.remove('active'));
+// 桌面端：鼠标移到词条上显示图标，移开消失
+feed.addEventListener("mouseover", (e) => {
+  const item = e.target.closest('.post, .doc-item');
+  if(item) item.classList.add('active');
+});
+feed.addEventListener("mouseout", (e) => {
+  const item = e.target.closest('.post, .doc-item');
+  if(item) item.classList.remove('active');
 });
 
-// 手指滑动到某个词条上方时，实时显示该词条的编辑/删除图标
+// 移动端：手指划到哪个词条上，就显示哪个词条的图标；划走或抬起手指立即消失
 let touchActiveItem = null;
 feed.addEventListener("touchstart", handleTouchHover, {passive:true});
 feed.addEventListener("touchmove", handleTouchHover, {passive:true});
@@ -903,7 +894,14 @@ function handleTouchHover(e){
     touchActiveItem = null;
   }
 }
-feed.addEventListener("touchend", () => { touchActiveItem = null; lastTouchTime = Date.now(); });
+function clearTouchActive(){
+  if(touchActiveItem){
+    touchActiveItem.classList.remove('active');
+    touchActiveItem = null;
+  }
+}
+feed.addEventListener("touchend", clearTouchActive);
+feed.addEventListener("touchcancel", clearTouchActive);
 
 let dragStartIndex = -1;
 function bindDragEvents() {
