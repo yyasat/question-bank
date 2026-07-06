@@ -1,4 +1,4 @@
-  :root{
+:root{
     --ink:#151414;
     --paper:#FBFAF8;
     --rule:#1c1b1b;
@@ -580,6 +580,8 @@
     position:fixed;
     inset:0;
     background:rgba(20,18,17,.55);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
     display:none;
     align-items:center;
     justify-content:center;
@@ -725,6 +727,8 @@
     position:fixed;
     inset:0;
     background:rgba(20,18,17,.6);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
     display:none;
     align-items:center;
     justify-content:center;
