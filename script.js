@@ -491,23 +491,54 @@ function highlight(text, kw){
   }catch(e){ return text; }
 }
 
-// ================ 拼音首字母/缩写快速查询 ================
-function getInitials(item){
-  if(item._initials !== undefined) return item._initials;
+// ================ 拼音混合模糊快速查询 ================
+// 支持「纯首字母」「首字母+汉字混合」「全汉字」任意组合的搜索方式，例如：
+// sqcdmao / sqc的mao / sqc的猫 → 均可命中「水千丞的猫」
+function buildPinyinIndex(item){
+  if(item._pyIndex) return item._pyIndex;
+  const text = (item.q||"") + (item.a||"") + (item.extra||"");
+  const chars = Array.from(text);
+  let initials = [], fulls = [];
   try{
-    const text = (item.q||"") + (item.a||"") + (item.extra||"");
-    const arr = window.pinyinPro.pinyin(text, { pattern: "first", toneType: "none", type: "array" });
-    item._initials = arr.join("").toLowerCase();
-  }catch(e){
-    item._initials = "";
+    initials = window.pinyinPro.pinyin(text, { pattern: "first", toneType: "none", type: "array" });
+    fulls = window.pinyinPro.pinyin(text, { toneType: "none", type: "array" });
+  }catch(e){}
+  item._pyIndex = chars.map((ch,i)=>({
+    ch: ch.toLowerCase(),
+    initial: (initials[i]||ch).toLowerCase(),
+    full: (fulls[i]||ch).toLowerCase()
+  }));
+  return item._pyIndex;
+}
+
+// 按顺序贪婪匹配：每个文本字符可以用「完整拼音」「首字母」或「原字符」中的任意一种
+// 去消耗关键词，从而做到首字母、拼音、汉字随意混合搜索
+function fuzzyPinyinMatch(item, kwLower){
+  if(!kwLower) return true;
+  const idx = buildPinyinIndex(item);
+  let qi = 0;
+  const qLen = kwLower.length;
+  for(let ti=0; ti<idx.length && qi<qLen; ti++){
+    const { ch, initial, full } = idx[ti];
+    if(full.length>1 && kwLower.startsWith(full, qi)){
+      qi += full.length;
+      continue;
+    }
+    if(kwLower[qi] === ch){
+      qi += 1;
+      continue;
+    }
+    if(initial && kwLower[qi] === initial){
+      qi += 1;
+      continue;
+    }
   }
-  return item._initials;
+  return qi >= qLen;
 }
 
 function paint(){
   const kw = keyword.trim();
   const kwLower = kw.toLowerCase();
-  const isAbbr = /^[a-z]+$/.test(kwLower); // 纯字母才走拼音首字母匹配
   const allData = getAllData();
   let list = allData.filter(item=>{
     const matchCat = activeCat==="all" || item.cat===activeCat;
@@ -515,7 +546,7 @@ function paint(){
     if(!kw) return true;
     const hay = (item.q + item.a + (item.extra||"")).toLowerCase();
     if(hay.includes(kwLower)) return true;
-    if(isAbbr && getInitials(item).includes(kwLower)) return true;
+    if(fuzzyPinyinMatch(item, kwLower)) return true;
     return false;
   });
 
