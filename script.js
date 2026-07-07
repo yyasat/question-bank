@@ -1486,7 +1486,7 @@ function finishQuiz(){
 
   if(wrongList.length === 0){
     scrollTitle.textContent = "🎉 全部答对，挑战通过！";
-    scrollContent.innerHTML = `<div class="scroll-item item-correct"><div class="scroll-success">恭喜，本次 ${QUIZ_QUESTION_COUNT} 道题全部正确。</div></div>`;
+    scrollContent.innerHTML = `<div class="scroll-item"><div class="scroll-success">恭喜，本次 ${QUIZ_QUESTION_COUNT} 道题全部正确。</div></div>`;
     scrollReviewBtn.style.display = "block";
   } else {
     scrollTitle.textContent = "很遗憾，未能全部通过";
