@@ -1265,12 +1265,23 @@ const quizBankMask = document.getElementById("quizBankMask");
 const quizBankCloseBtn = document.getElementById("quizBankCloseBtn");
 const quizBankSearch = document.getElementById("quizBankSearch");
 const quizBankList = document.getElementById("quizBankList");
+const quizBankFilter = document.getElementById("quizBankFilter");
+let quizBankFilterMode = "all";
+
+function isQbDone(item){
+  return item.wrongOptions && item.wrongOptions.length === 2 && item.wrongOptions[0] && item.wrongOptions[1];
+}
 
 function renderQuizBankList(){
   const kw = quizBankSearch.value.trim().toLowerCase();
   const allData = getAllData();
   const rows = allData.map((item, idx) => ({ item, idx }))
-    .filter(({item}) => !kw || item.q.toLowerCase().includes(kw));
+    .filter(({item}) => !kw || item.q.toLowerCase().includes(kw))
+    .filter(({item}) => {
+      if(quizBankFilterMode === "done") return isQbDone(item);
+      if(quizBankFilterMode === "undone") return !isQbDone(item);
+      return true;
+    });
 
   if(rows.length === 0){
     quizBankList.innerHTML = `<div class="empty">没有匹配的词条</div>`;
@@ -1278,7 +1289,7 @@ function renderQuizBankList(){
   }
 
   quizBankList.innerHTML = rows.map(({item, idx}) => {
-    const done = item.wrongOptions && item.wrongOptions.length === 2 && item.wrongOptions[0] && item.wrongOptions[1];
+    const done = isQbDone(item);
     const w1 = (item.wrongOptions && item.wrongOptions[0]) || "";
     const w2 = (item.wrongOptions && item.wrongOptions[1]) || "";
     return `
@@ -1298,6 +1309,8 @@ function renderQuizBankList(){
 
 quizBankBtn.addEventListener("click", () => {
   quizBankSearch.value = "";
+  quizBankFilterMode = "all";
+  quizBankFilter.querySelectorAll(".qb-filter-btn").forEach(b => b.classList.toggle("active", b.dataset.filter === "all"));
   renderQuizBankList();
   quizBankMask.classList.add("show");
 });
@@ -1307,6 +1320,14 @@ quizBankCloseBtn.addEventListener("click", () => {
 });
 
 quizBankSearch.addEventListener("input", () => {
+  renderQuizBankList();
+});
+
+quizBankFilter.addEventListener("click", (e) => {
+  const btn = e.target.closest(".qb-filter-btn");
+  if(!btn) return;
+  quizBankFilterMode = btn.dataset.filter;
+  quizBankFilter.querySelectorAll(".qb-filter-btn").forEach(b => b.classList.toggle("active", b === btn));
   renderQuizBankList();
 });
 

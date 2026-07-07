@@ -947,6 +947,30 @@
     margin-bottom:14px;
     box-sizing:border-box;
   }
+  .quiz-bank-filter{
+    display:flex;
+    gap:8px;
+    margin-bottom:14px;
+  }
+  .qb-filter-btn{
+    border:1px solid var(--hair);
+    background:#fff;
+    color:var(--sub);
+    font-size:12.5px;
+    font-weight:600;
+    padding:6px 14px;
+    border-radius:20px;
+    cursor:pointer;
+    transition:all .15s ease;
+  }
+  .qb-filter-btn:hover{
+    border-color:var(--accent);
+  }
+  .qb-filter-btn.active{
+    background:var(--accent);
+    border-color:var(--accent);
+    color:#fff;
+  }
   .quiz-bank-list{
     overflow-y:auto;
     display:flex;
