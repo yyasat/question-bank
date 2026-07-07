@@ -754,13 +754,13 @@
     color:var(--accent);
   }
 
-  /* ================= 卷轴结果弹窗（重新设计） ================= */
+  /* ================= 答题结果弹窗（简洁卡片风） ================= */
   .scroll-mask{
     position:fixed;
     inset:0;
-    background:rgba(20,18,17,.65);
-    backdrop-filter: blur(10px);
-    -webkit-backdrop-filter: blur(10px);
+    background:rgba(20,18,17,.55);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
     display:none;
     align-items:center;
     justify-content:center;
@@ -771,65 +771,29 @@
 
   .scroll-paper{
     position:relative;
-    background:#FBF3DE;
-    background-image:
-      radial-gradient(ellipse at top left, rgba(255,255,255,.5), transparent 60%),
-      repeating-linear-gradient(0deg, rgba(168,50,30,.045) 0 1px, transparent 1px 28px);
+    background:var(--paper);
     width:100%;
-    max-width:440px;
+    max-width:420px;
     max-height:85vh;
     overflow-y:auto;
-    border-radius:4px;
-    padding:38px 28px 28px;
-    box-shadow:
-      0 30px 70px rgba(0,0,0,.45),
-      inset 0 0 0 1px rgba(168,50,30,.12);
-    animation:scrollOpen .35s cubic-bezier(.2,.8,.3,1);
-  }
-  /* 模拟卷轴顶部/底部的木轴 */
-  .scroll-paper::before,
-  .scroll-paper::after{
-    content:"";
-    position:sticky;
-    left:0; right:0;
-    display:block;
-    height:10px;
-    background:linear-gradient(180deg, #8a5a3a, #5c3b24 55%, #8a5a3a);
-    box-shadow:0 2px 6px rgba(0,0,0,.35);
-    margin:-38px -28px 20px;
-    border-radius:4px 4px 0 0;
-  }
-  .scroll-paper::after{
-    top:auto;
-    margin:20px -28px -28px;
-    border-radius:0 0 4px 4px;
-    box-shadow:0 -2px 6px rgba(0,0,0,.35);
+    border-radius:20px;
+    padding:28px 24px 24px;
+    box-shadow:0 24px 60px rgba(0,0,0,.3);
+    animation:scrollOpen .3s ease;
   }
   @keyframes scrollOpen{
-    from{ opacity:0; transform:scaleY(.6); }
-    to{ opacity:1; transform:scaleY(1); }
+    from{ opacity:0; transform:scale(.94) translateY(10px); }
+    to{ opacity:1; transform:scale(1) translateY(0); }
   }
 
   .scroll-title{
     font-family:Georgia,"Songti SC",serif;
-    font-size:21px;
+    font-size:19px;
     font-weight:700;
     text-align:center;
     margin-bottom:20px;
-    color:var(--accent);
-    letter-spacing:.02em;
-    position:relative;
-    padding-bottom:12px;
-  }
-  .scroll-title::after{
-    content:"";
-    position:absolute;
-    bottom:0; left:50%;
-    transform:translateX(-50%);
-    width:46px; height:2px;
-    background:var(--accent);
-    opacity:.55;
-    border-radius:2px;
+    color:var(--ink);
+    letter-spacing:.01em;
   }
 
   .scroll-item{
