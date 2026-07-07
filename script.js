@@ -1323,6 +1323,7 @@ const scrollMask = document.getElementById("scrollMask");
 const scrollTitle = document.getElementById("scrollTitle");
 const scrollContent = document.getElementById("scrollContent");
 const scrollCloseBtn = document.getElementById("scrollCloseBtn");
+const scrollReviewBtn = document.getElementById("scrollReviewBtn");
 
 const QUIZ_QUESTION_COUNT = 5;
 const QUIZ_TOTAL_TIME = 60;
@@ -1434,6 +1435,7 @@ function finishQuiz(){
   if(wrongList.length === 0){
     scrollTitle.textContent = "🎉 全部答对，挑战通过！";
     scrollContent.innerHTML = `<div class="scroll-item"><div class="scroll-your">恭喜，本次 ${QUIZ_QUESTION_COUNT} 道题全部正确。</div></div>`;
+    scrollReviewBtn.style.display = "block";
   } else {
     scrollTitle.textContent = "很遗憾，未能全部通过";
     scrollContent.innerHTML = wrongList.map(w => `
@@ -1443,9 +1445,26 @@ function finishQuiz(){
         <div class="scroll-correct">正确答案：${w.correct}</div>
       </div>
     `).join("");
+    scrollReviewBtn.style.display = "none";
   }
   scrollMask.classList.add("show");
 }
+
+function renderQuizReview(){
+  scrollTitle.textContent = "📜 答题回顾";
+  scrollContent.innerHTML = quizPool.map((item, i) => `
+    <div class="scroll-item">
+      <div class="scroll-q">${i + 1}. ${item.q}</div>
+      <div class="scroll-your">你的答案：${quizAnswers[i]}</div>
+      <div class="scroll-correct">正确答案：${item.correct}</div>
+    </div>
+  `).join("");
+  scrollReviewBtn.style.display = "none";
+}
+
+scrollReviewBtn.addEventListener("click", () => {
+  renderQuizReview();
+});
 
 quizCloseBtn.addEventListener("click", () => {
   clearInterval(quizTimer);

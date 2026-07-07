@@ -817,14 +817,28 @@
     color:#2f6b3a;
     font-weight:600;
   }
+  .scroll-btn-row{
+    display:flex;
+    gap:12px;
+    margin-top:20px;
+  }
   .scroll-close-btn{
-    display:block;
-    margin:20px auto 0;
+    flex:1;
     padding:9px 26px;
     border-radius:8px;
     border:1.5px solid var(--accent);
     background:var(--accent);
     color:#fff;
+    font-size:14px;
+    cursor:pointer;
+  }
+  .scroll-review-btn{
+    flex:1;
+    padding:9px 26px;
+    border-radius:8px;
+    border:1.5px solid var(--accent);
+    background:#fff;
+    color:var(--accent);
     font-size:14px;
     cursor:pointer;
   }
