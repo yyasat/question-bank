@@ -491,6 +491,27 @@ function highlight(text, kw){
   }catch(e){ return text; }
 }
 
+// ================ 中文数字与阿拉伯数字互转，方便"第一部"匹配"第1部" ================
+function cnNumToArabic(cnStr){
+  const digits = {'零':0,'一':1,'二':2,'两':2,'三':3,'四':4,'五':5,'六':6,'七':7,'八':8,'九':9};
+  if(cnStr === '十') return 10;
+  if(cnStr.length === 1) return digits[cnStr] !== undefined ? digits[cnStr] : null;
+  if(cnStr.includes('十')){
+    const parts = cnStr.split('十');
+    const tens = parts[0] === '' ? 1 : (digits[parts[0]] !== undefined ? digits[parts[0]] : null);
+    const ones = parts[1] === '' ? 0 : (digits[parts[1]] !== undefined ? digits[parts[1]] : null);
+    if(tens === null || ones === null) return null;
+    return tens * 10 + ones;
+  }
+  return null;
+}
+function normalizeCnNumbers(str){
+  return str.replace(/[零一二两三四五六七八九十]+/g, (match) => {
+    const num = cnNumToArabic(match);
+    return num !== null ? String(num) : match;
+  });
+}
+
 // ================ 拼音混合模糊快速查询 ================
 // 支持「纯首字母」「首字母+汉字混合」「全汉字」任意组合的搜索方式，例如：
 // sqcdmao / sqc的mao / sqc的猫 → 均可命中「水千丞的猫」
@@ -544,8 +565,8 @@ function paint(){
     const matchCat = activeCat==="all" || item.cat===activeCat;
     if(!matchCat) return false;
     if(!kw) return true;
-    const hay = (item.q + item.a + (item.extra||"")).toLowerCase().replace(/\s+/g, "");
-    const kwNoSpace = kwLower.replace(/\s+/g, "");
+    const hay = normalizeCnNumbers((item.q + item.a + (item.extra||"")).toLowerCase().replace(/\s+/g, ""));
+    const kwNoSpace = normalizeCnNumbers(kwLower.replace(/\s+/g, ""));
     if(hay.includes(kwNoSpace)) return true;
     if(fuzzyPinyinMatch(item, kwNoSpace)) return true;
     return false;
