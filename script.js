@@ -982,43 +982,24 @@ feed.addEventListener("click", async (e) => {
   }
 });
 
-// 桌面端：鼠标移到词条上显示图标，移开消失
-feed.addEventListener("mouseover", (e) => {
+// 点击词条显示编辑/删除图标；点击其他地方或滚动页面时隐藏
+feed.addEventListener("click", (e) => {
+  if(e.target.closest('.action-btn')) return; // 点的是图标本身，交给上面的逻辑处理
   const item = e.target.closest('.post, .doc-item');
-  if(item) item.classList.add('active');
-});
-feed.addEventListener("mouseout", (e) => {
-  const item = e.target.closest('.post, .doc-item');
-  if(item) item.classList.remove('active');
+  feed.querySelectorAll('.post.active, .doc-item.active').forEach(el => {
+    if(el !== item) el.classList.remove('active');
+  });
+  if(item) item.classList.toggle('active');
 });
 
-// 移动端：手指划到哪个词条上，就显示哪个词条的图标；划走或抬起手指立即消失
-let touchActiveItem = null;
-feed.addEventListener("touchstart", handleTouchHover, {passive:true});
-feed.addEventListener("touchmove", handleTouchHover, {passive:true});
-function handleTouchHover(e){
-  if(isTouchDragging) return;
-  const touch = e.touches[0];
-  if(!touch) return;
-  const el = document.elementFromPoint(touch.clientX, touch.clientY);
-  const item = el ? el.closest('.post, .doc-item') : null;
-  if(item === touchActiveItem) return;
-  if(touchActiveItem) touchActiveItem.classList.remove('active');
-  if(item){
-    item.classList.add('active');
-    touchActiveItem = item;
-  } else {
-    touchActiveItem = null;
-  }
-}
-function clearTouchActive(){
-  if(touchActiveItem){
-    touchActiveItem.classList.remove('active');
-    touchActiveItem = null;
-  }
-}
-feed.addEventListener("touchend", clearTouchActive);
-feed.addEventListener("touchcancel", clearTouchActive);
+document.addEventListener("click", (e) => {
+  if(e.target.closest('.post, .doc-item')) return;
+  feed.querySelectorAll('.post.active, .doc-item.active').forEach(el => el.classList.remove('active'));
+});
+
+window.addEventListener("scroll", () => {
+  feed.querySelectorAll('.post.active, .doc-item.active').forEach(el => el.classList.remove('active'));
+}, {passive:true});
 
 let dragStartIndex = -1;
 
