@@ -779,6 +779,52 @@ function watchFirebase(){
   });
 }
 
+// ================= 内置词条的修改持久化 =================
+// 内置 data 数组写死在代码里，本身不能云端保存；这里用"覆盖记录"的方式，
+// 把用户对内置词条的编辑/题库设置存到云端，下次打开时自动合并回来。
+async function saveBuiltinItemOverride(idx, fullItemData){
+  const payload = { ...fullItemData };
+  delete payload._globalIndex;
+  try{
+    if(cloudMode === "firebase"){
+      await dbSet(dbRef(db, "itemOverrides/" + idx), payload);
+    } else if(cloudMode === "claude"){
+      await window.storage.set("itemOverride:" + idx, JSON.stringify(payload), true);
+    }
+  }catch(e){
+    console.error("内置词条修改保存失败", e);
+  }
+}
+
+async function loadItemOverrides(){
+  if(cloudMode === "firebase"){
+    dbOnValue(dbRef(db, "itemOverrides"), (snapshot)=>{
+      const val = snapshot.val() || {};
+      Object.keys(val).forEach(idxStr=>{
+        const idx = parseInt(idxStr);
+        if(data[idx]) data[idx] = { ...data[idx], ...val[idxStr] };
+      });
+      render(true);
+    });
+  } else if(cloudMode === "claude"){
+    try{
+      const list = await window.storage.list("itemOverride:", true);
+      if(!list || !list.keys) return;
+      for(const key of list.keys){
+        try{
+          const res = await window.storage.get(key, true);
+          if(res && res.value){
+            const idx = parseInt(key.replace("itemOverride:", ""));
+            if(data[idx]) data[idx] = { ...data[idx], ...JSON.parse(res.value) };
+          }
+        }catch(e){}
+      }
+    }catch(e){ console.error("内置词条修改记录加载失败", e); }
+  }
+}
+if(cloudMode==="firebase"){ loadItemOverrides(); }
+else if(cloudMode==="claude"){ loadItemOverrides().then(()=> render(true)); }
+
 if(cloudMode==="firebase"){ watchFirebase(); }
 else if(cloudMode==="claude"){ loadClaudeEntries().then(()=>{ updateIssueLine(); render(true); }); }
 
@@ -821,6 +867,7 @@ btnSave.addEventListener("click", async ()=>{
       } else {
         data[currentEditIndex] = itemData;
         render(true);
+        saveBuiltinItemOverride(currentEditIndex, itemData);
       }
     }
     inQ.value = ""; inA.value = ""; inExtra.value = "";
@@ -1170,6 +1217,7 @@ async function updateItemFields(idx, patchFields){
     }
   } else {
     data[idx] = merged;
+    saveBuiltinItemOverride(idx, merged);
   }
   render(true);
 }
