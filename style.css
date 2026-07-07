@@ -875,11 +875,11 @@
     filter:drop-shadow(0 3px 4px rgba(0,0,0,.3));
   }
   .scroll-item.item-correct::after{
-    background-image:url('https://raw.githubusercontent.com/yyasat/TUCHUANG/main/mrajxa4a3aofm-无标题12_20260707191326.png');
+    background-image:url('https://raw.githubusercontent.com/yyasat/TUCHUANG/main/mrakl2912fcib-无标题12_20260707193203.png');
     transform:rotate(-12deg);
   }
   .scroll-item.item-wrong::after{
-    background-image:url('https://raw.githubusercontent.com/yyasat/TUCHUANG/main/mrajxftb0xi1k-无标题11_20260707191356.png');
+    background-image:url('https://raw.githubusercontent.com/yyasat/TUCHUANG/main/mrakla9eraou5-无标题11_20260707193222.png');
     transform:rotate(10deg);
   }
   .scroll-success{
