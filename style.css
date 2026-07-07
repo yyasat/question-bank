@@ -754,11 +754,11 @@
     color:var(--accent);
   }
 
-  /* ================= 卷轴结果弹窗 ================= */
+  /* ================= 卷轴结果弹窗（重新设计） ================= */
   .scroll-mask{
     position:fixed;
     inset:0;
-    background:rgba(20,18,17,.6);
+    background:rgba(20,18,17,.65);
     backdrop-filter: blur(10px);
     -webkit-backdrop-filter: blur(10px);
     display:none;
@@ -768,77 +768,163 @@
     padding:20px;
   }
   .scroll-mask.show{ display:flex; }
+
   .scroll-paper{
-    background:#FBF6E9;
+    position:relative;
+    background:#FBF3DE;
     background-image:
-      linear-gradient(#FBF6E9,#FBF6E9),
-      repeating-linear-gradient(0deg, rgba(168,50,30,.04) 0 1px, transparent 1px 26px);
+      radial-gradient(ellipse at top left, rgba(255,255,255,.5), transparent 60%),
+      repeating-linear-gradient(0deg, rgba(168,50,30,.045) 0 1px, transparent 1px 28px);
     width:100%;
     max-width:440px;
     max-height:85vh;
     overflow-y:auto;
-    border-radius:6px;
-    padding:30px 26px;
-    box-shadow:0 22px 60px rgba(0,0,0,.4);
-    border:1px solid #d8c9a3;
-    animation:scrollOpen .3s ease;
+    border-radius:4px;
+    padding:38px 28px 28px;
+    box-shadow:
+      0 30px 70px rgba(0,0,0,.45),
+      inset 0 0 0 1px rgba(168,50,30,.12);
+    animation:scrollOpen .35s cubic-bezier(.2,.8,.3,1);
+  }
+  /* 模拟卷轴顶部/底部的木轴 */
+  .scroll-paper::before,
+  .scroll-paper::after{
+    content:"";
+    position:sticky;
+    left:0; right:0;
+    display:block;
+    height:10px;
+    background:linear-gradient(180deg, #8a5a3a, #5c3b24 55%, #8a5a3a);
+    box-shadow:0 2px 6px rgba(0,0,0,.35);
+    margin:-38px -28px 20px;
+    border-radius:4px 4px 0 0;
+  }
+  .scroll-paper::after{
+    top:auto;
+    margin:20px -28px -28px;
+    border-radius:0 0 4px 4px;
+    box-shadow:0 -2px 6px rgba(0,0,0,.35);
   }
   @keyframes scrollOpen{
-    from{ opacity:0; transform:scaleY(.7); }
+    from{ opacity:0; transform:scaleY(.6); }
     to{ opacity:1; transform:scaleY(1); }
   }
+
   .scroll-title{
     font-family:Georgia,"Songti SC",serif;
-    font-size:20px;
+    font-size:21px;
     font-weight:700;
     text-align:center;
-    margin-bottom:18px;
+    margin-bottom:20px;
     color:var(--accent);
+    letter-spacing:.02em;
+    position:relative;
+    padding-bottom:12px;
   }
+  .scroll-title::after{
+    content:"";
+    position:absolute;
+    bottom:0; left:50%;
+    transform:translateX(-50%);
+    width:46px; height:2px;
+    background:var(--accent);
+    opacity:.55;
+    border-radius:2px;
+  }
+
   .scroll-item{
-    padding:14px 0;
-    border-bottom:1px dashed #d8c9a3;
+    position:relative;
+    padding:14px 14px 14px 18px;
+    margin-bottom:10px;
+    background:rgba(255,255,255,.55);
+    border-radius:10px;
+    border:1px solid rgba(168,50,30,.14);
   }
-  .scroll-item:last-child{ border-bottom:none; }
+  .scroll-item:last-child{ margin-bottom:0; }
+  .scroll-item::before{
+    content:"";
+    position:absolute;
+    left:0; top:12px; bottom:12px;
+    width:3px;
+    border-radius:2px;
+    background:var(--accent);
+    opacity:.6;
+  }
   .scroll-q{
     font-family:Georgia,"Songti SC",serif;
     font-size:15.5px;
     font-weight:700;
-    margin-bottom:8px;
+    margin-bottom:9px;
     line-height:1.5;
+    color:var(--ink);
   }
   .scroll-your{
-    font-size:13.5px;
-    color:#8a5a4a;
-    margin-bottom:4px;
+    display:flex;
+    align-items:baseline;
+    gap:6px;
+    font-size:13px;
+    color:#9a4a3a;
+    margin-bottom:5px;
+    line-height:1.5;
+  }
+  .scroll-your::before{
+    content:"✗";
+    flex:0 0 auto;
+    font-size:11px;
+    font-weight:700;
   }
   .scroll-correct{
-    font-size:13.5px;
+    display:flex;
+    align-items:baseline;
+    gap:6px;
+    font-size:13px;
     color:#2f6b3a;
     font-weight:600;
+    line-height:1.5;
   }
+  .scroll-correct::before{
+    content:"✓";
+    flex:0 0 auto;
+    font-size:11px;
+  }
+
   .scroll-btn-row{
     display:flex;
-    gap:12px;
-    margin-top:20px;
+    gap:10px;
+    margin-top:22px;
   }
   .scroll-close-btn{
     flex:1;
-    padding:9px 26px;
-    border-radius:8px;
-    border:1.5px solid var(--accent);
+    padding:11px 26px;
+    border-radius:10px;
+    border:none;
     background:var(--accent);
     color:#fff;
     font-size:14px;
+    font-weight:600;
+    letter-spacing:.02em;
     cursor:pointer;
+    box-shadow:0 6px 16px rgba(168,50,30,.3);
+    transition:transform .15s ease, box-shadow .15s ease;
+  }
+  .scroll-close-btn:hover{
+    transform:translateY(-1px);
+    box-shadow:0 8px 20px rgba(168,50,30,.4);
   }
   .scroll-review-btn{
     flex:1;
-    padding:9px 26px;
-    border-radius:8px;
+    padding:11px 26px;
+    border-radius:10px;
     border:1.5px solid var(--accent);
     background:#fff;
     color:var(--accent);
     font-size:14px;
+    font-weight:600;
+    letter-spacing:.02em;
     cursor:pointer;
+    transition:all .15s ease;
+  }
+  .scroll-review-btn:hover{
+    background:var(--accent);
+    color:#fff;
   }
