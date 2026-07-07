@@ -1486,12 +1486,12 @@ function finishQuiz(){
 
   if(wrongList.length === 0){
     scrollTitle.textContent = "🎉 全部答对，挑战通过！";
-    scrollContent.innerHTML = `<div class="scroll-item"><div class="scroll-your">恭喜，本次 ${QUIZ_QUESTION_COUNT} 道题全部正确。</div></div>`;
+    scrollContent.innerHTML = `<div class="scroll-item item-correct"><div class="scroll-success">恭喜，本次 ${QUIZ_QUESTION_COUNT} 道题全部正确。</div></div>`;
     scrollReviewBtn.style.display = "block";
   } else {
     scrollTitle.textContent = "很遗憾，未能全部通过";
     scrollContent.innerHTML = wrongList.map(w => `
-      <div class="scroll-item">
+      <div class="scroll-item item-wrong">
         <div class="scroll-q">${w.q}</div>
         <div class="scroll-your">你的答案：${w.chosen}</div>
         <div class="scroll-correct">正确答案：${w.correct}</div>
@@ -1504,13 +1504,16 @@ function finishQuiz(){
 
 function renderQuizReview(){
   scrollTitle.textContent = "📜 答题回顾";
-  scrollContent.innerHTML = quizPool.map((item, i) => `
-    <div class="scroll-item">
-      <div class="scroll-q">${i + 1}. ${item.q}</div>
-      <div class="scroll-your">你的答案：${quizAnswers[i]}</div>
-      <div class="scroll-correct">正确答案：${item.correct}</div>
-    </div>
-  `).join("");
+  scrollContent.innerHTML = quizPool.map((item, i) => {
+    const isCorrect = quizAnswers[i] === item.correct;
+    return `
+      <div class="scroll-item ${isCorrect ? 'item-correct' : 'item-wrong'}">
+        <div class="scroll-q">${i + 1}. ${item.q}</div>
+        <div class="scroll-your">你的答案：${quizAnswers[i]}</div>
+        <div class="scroll-correct">正确答案：${item.correct}</div>
+      </div>
+    `;
+  }).join("");
   scrollReviewBtn.style.display = "none";
 }
 

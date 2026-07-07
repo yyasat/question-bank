@@ -858,34 +858,46 @@
     line-height:1.5;
     color:var(--ink);
   }
+  .scroll-item{
+    overflow:visible;
+  }
+  .scroll-item.item-correct::after,
+  .scroll-item.item-wrong::after{
+    content:"";
+    position:absolute;
+    left:-16px; top:-16px;
+    width:54px; height:54px;
+    background-size:contain;
+    background-repeat:no-repeat;
+    background-position:center;
+    z-index:3;
+    pointer-events:none;
+    filter:drop-shadow(0 3px 4px rgba(0,0,0,.3));
+  }
+  .scroll-item.item-correct::after{
+    background-image:url('https://raw.githubusercontent.com/yyasat/TUCHUANG/main/mrajxa4a3aofm-无标题12_20260707191326.png');
+    transform:rotate(-12deg);
+  }
+  .scroll-item.item-wrong::after{
+    background-image:url('https://raw.githubusercontent.com/yyasat/TUCHUANG/main/mrajxftb0xi1k-无标题11_20260707191356.png');
+    transform:rotate(10deg);
+  }
+  .scroll-success{
+    font-size:13.5px;
+    color:var(--ink);
+    line-height:1.6;
+  }
   .scroll-your{
-    display:flex;
-    align-items:baseline;
-    gap:6px;
     font-size:13px;
     color:#9a4a3a;
     margin-bottom:5px;
     line-height:1.5;
   }
-  .scroll-your::before{
-    content:"✗";
-    flex:0 0 auto;
-    font-size:11px;
-    font-weight:700;
-  }
   .scroll-correct{
-    display:flex;
-    align-items:baseline;
-    gap:6px;
     font-size:13px;
     color:#2f6b3a;
     font-weight:600;
     line-height:1.5;
-  }
-  .scroll-correct::before{
-    content:"✓";
-    flex:0 0 auto;
-    font-size:11px;
   }
 
   .scroll-btn-row{
