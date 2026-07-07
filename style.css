@@ -761,7 +761,7 @@
 
   .scroll-paper{
     position:relative;
-    background:rgba(255, 255, 255, 0.95);
+    background:#FCF3DE;
     width:100%;
     max-width:420px;
     max-height:85vh;
@@ -786,7 +786,7 @@
     font-weight:700;
     text-align:center;
     margin-bottom:24px;
-    color:var(--ink);
+    color:#A93221;
     letter-spacing:.02em;
   }
 
@@ -794,7 +794,7 @@
     position:relative;
     padding:16px 18px;
     margin-bottom:12px;
-    background:#f8f9fa;
+    background:#FEFAF0;
     border-radius:16px;
     border:1px solid rgba(0,0,0,.03);
     box-shadow:0 2px 8px rgba(0,0,0,.02);
@@ -878,7 +878,7 @@
     padding:14px 24px;
     border-radius:100px;
     border:none;
-    background:var(--ink);
+    background:#A9321E;
     color:#fff;
     font-size:15px;
     font-weight:600;
@@ -1018,3 +1018,4 @@
     cursor:pointer;
   }
   .qb-save-btn:hover{ background:var(--accent); }
+}
