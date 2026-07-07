@@ -15,6 +15,7 @@ const firebaseConfig = {
 };
 
 let cloudMode = "none"; // "firebase" | "claude" | "none"
+const syncPromises = []; // 收集所有初次同步任务，全部完成后隐藏顶部同步提示条
 let db, dbRef, dbPush, dbOnValue;
 // ======== 为修改和删除提供 firebase 支持的引用 ========
 let dbUpdate, dbRemove, dbSet;
@@ -458,10 +459,14 @@ async function handleLongPressGroup(groupKey){
 }
 
 function watchGroups(){
-  dbOnValue(dbRef(db, "groups"), (snapshot)=>{
-    const val = snapshot.val() || {};
-    groups = Object.entries(val).map(([k,v])=>({ key:"g_"+k, label:v.label, icon:v.icon, catKeys:v.catKeys||[], _cloudKey:k }));
-    renderGroups(); renderDrawer();
+  return new Promise(resolve=>{
+    let done=false;
+    dbOnValue(dbRef(db, "groups"), (snapshot)=>{
+      const val = snapshot.val() || {};
+      groups = Object.entries(val).map(([k,v])=>({ key:"g_"+k, label:v.label, icon:v.icon, catKeys:v.catKeys||[], _cloudKey:k }));
+      renderGroups(); renderDrawer();
+      if(!done){ done=true; resolve(); }
+    });
   });
 }
 async function loadClaudeGroups(){
@@ -703,17 +708,26 @@ inCat.addEventListener("change", ()=>{
 });
 
 function watchCategories(){
-  dbOnValue(dbRef(db, "categories"), (snapshot)=>{
-    const val = snapshot.val() || {};
-    customCategories = Object.entries(val).map(([k,v])=>({ key:"c_"+k, label:v.label, icon:v.icon, _cloudKey:k }));
-    computeCategories();
-    refreshCategoryUI();
+  const p1 = new Promise(resolve=>{
+    let done=false;
+    dbOnValue(dbRef(db, "categories"), (snapshot)=>{
+      const val = snapshot.val() || {};
+      customCategories = Object.entries(val).map(([k,v])=>({ key:"c_"+k, label:v.label, icon:v.icon, _cloudKey:k }));
+      computeCategories();
+      refreshCategoryUI();
+      if(!done){ done=true; resolve(); }
+    });
   });
-  dbOnValue(dbRef(db, "categoryOverrides"), (snapshot)=>{
-    categoryOverrides = snapshot.val() || {};
-    computeCategories();
-    refreshCategoryUI();
+  const p2 = new Promise(resolve=>{
+    let done=false;
+    dbOnValue(dbRef(db, "categoryOverrides"), (snapshot)=>{
+      categoryOverrides = snapshot.val() || {};
+      computeCategories();
+      refreshCategoryUI();
+      if(!done){ done=true; resolve(); }
+    });
   });
+  return Promise.all([p1, p2]);
 }
 async function loadClaudeCategories(){
   try{
@@ -751,8 +765,8 @@ async function loadClaudeCategories(){
   computeCategories();
   refreshCategoryUI();
 }
-if(cloudMode==="firebase"){ watchCategories(); watchGroups(); }
-else if(cloudMode==="claude"){ loadClaudeCategories(); loadClaudeGroups(); }
+if(cloudMode==="firebase"){ syncPromises.push(watchCategories(), watchGroups()); }
+else if(cloudMode==="claude"){ syncPromises.push(loadClaudeCategories(), loadClaudeGroups()); }
 renderGroups();
 renderDrawer();
 
@@ -791,12 +805,16 @@ async function loadClaudeEntries(){
 }
 
 function watchFirebase(){
-  const entriesRef = dbRef(db, "entries");
-  dbOnValue(entriesRef, (snapshot)=>{
-    const val = snapshot.val() || {};
-    cloudEntries = Object.keys(val).map(k => ({ ...val[k], _cloudKey: k }));
-    updateIssueLine();
-    render(true);
+  return new Promise(resolve=>{
+    let done=false;
+    const entriesRef = dbRef(db, "entries");
+    dbOnValue(entriesRef, (snapshot)=>{
+      const val = snapshot.val() || {};
+      cloudEntries = Object.keys(val).map(k => ({ ...val[k], _cloudKey: k }));
+      updateIssueLine();
+      render(true);
+      if(!done){ done=true; resolve(); }
+    });
   });
 }
 
@@ -819,13 +837,17 @@ async function saveBuiltinItemOverride(idx, fullItemData){
 
 async function loadItemOverrides(){
   if(cloudMode === "firebase"){
-    dbOnValue(dbRef(db, "itemOverrides"), (snapshot)=>{
-      const val = snapshot.val() || {};
-      Object.keys(val).forEach(idxStr=>{
-        const idx = parseInt(idxStr);
-        if(data[idx]) data[idx] = { ...data[idx], ...val[idxStr] };
+    return new Promise(resolve=>{
+      let done=false;
+      dbOnValue(dbRef(db, "itemOverrides"), (snapshot)=>{
+        const val = snapshot.val() || {};
+        Object.keys(val).forEach(idxStr=>{
+          const idx = parseInt(idxStr);
+          if(data[idx]) data[idx] = { ...data[idx], ...val[idxStr] };
+        });
+        render(true);
+        if(!done){ done=true; resolve(); }
       });
-      render(true);
     });
   } else if(cloudMode === "claude"){
     try{
@@ -843,11 +865,24 @@ async function loadItemOverrides(){
     }catch(e){ console.error("内置词条修改记录加载失败", e); }
   }
 }
-if(cloudMode==="firebase"){ loadItemOverrides(); }
-else if(cloudMode==="claude"){ loadItemOverrides().then(()=> render(true)); }
+if(cloudMode==="firebase"){ syncPromises.push(loadItemOverrides()); }
+else if(cloudMode==="claude"){ syncPromises.push(loadItemOverrides().then(()=> render(true))); }
 
-if(cloudMode==="firebase"){ watchFirebase(); }
-else if(cloudMode==="claude"){ loadClaudeEntries().then(()=>{ updateIssueLine(); render(true); }); }
+if(cloudMode==="firebase"){ syncPromises.push(watchFirebase()); }
+else if(cloudMode==="claude"){ syncPromises.push(loadClaudeEntries().then(()=>{ updateIssueLine(); render(true); })); }
+
+// ================= 顶部同步进度提示条：全部同步任务完成后自动淡出消失 =================
+const syncBanner = document.getElementById("syncBanner");
+function hideSyncBanner(){
+  if(!syncBanner) return;
+  syncBanner.classList.add("hide");
+  setTimeout(()=> syncBanner.remove(), 500);
+}
+if(cloudMode === "none" || syncPromises.length === 0){
+  hideSyncBanner();
+} else {
+  Promise.all(syncPromises).then(hideSyncBanner).catch(hideSyncBanner);
+}
 
 btnSave.addEventListener("click", async ()=>{
   const q = inQ.value.trim();

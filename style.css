@@ -575,6 +575,36 @@
     .bigtab { padding: 10px 14px; font-size: 13px; }
   }
 
+  /* ================= 顶部同步进度提示条 ================= */
+  .sync-banner{
+    position:fixed;
+    top:0; left:0; right:0;
+    z-index:200;
+    background:var(--ink);
+    color:#fff;
+    font-size:12.5px;
+    letter-spacing:.03em;
+    padding:9px 14px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    gap:8px;
+    transition:opacity .4s ease, transform .4s ease;
+  }
+  .sync-banner.hide{
+    opacity:0;
+    transform:translateY(-100%);
+    pointer-events:none;
+  }
+  .sync-banner-spinner{
+    width:12px; height:12px;
+    border:2px solid rgba(255,255,255,.35);
+    border-top-color:#fff;
+    border-radius:50%;
+    animation:syncSpin .7s linear infinite;
+  }
+  @keyframes syncSpin{ to{ transform:rotate(360deg); } }
+
   /* ================= 答题模式 ================= */
   .quiz-mask{
     position:fixed;
