@@ -545,32 +545,22 @@
     text-align:center;
   }
 
-  /* ================= 🌟 绝对无损新增：自适应屏幕大小系统 ================= */
+  /* ================= 自适应屏幕大小系统 ================= */
   @media (max-width: 580px) {
-    /* 解决搜索栏输入框在窄屏下被挤压问题 */
     .searchbox input {
       min-width: 100px;
     }
-
-    /* 优化手机端整体留白 */
     .masthead { padding-top: 20px; }
     .masthead h1 { font-size: 34px; }
     .topbar { padding: 10px 15px; }
-
-    /* 移动端同样为点击显示，给文字留出右边距防止重叠 */
     .post { padding-right: 55px; }
     .doc-item { padding-right: 55px; }
-    
-    /* 针对手机端略微下调图表容器高度防止占用过高屏幕 */
     #graphContainer { height: 420px; margin-top: 10px; }
-
-    /* 悬浮球及弹窗细微调优 */
     .fab { width: 46px; height: 46px; font-size: 22px; right: 15px; bottom: 15px; }
     .sheet { padding: 16px 16px 20px; }
   }
   
   @media (max-width: 360px) {
-    /* 针对超小屏幕设备进一步优化文字大小 */
     .masthead h1 { font-size: 28px; }
     .bigtab { padding: 10px 14px; font-size: 13px; }
   }
@@ -754,13 +744,13 @@
     color:var(--accent);
   }
 
-  /* ================= 答题结果弹窗（简洁卡片风） ================= */
+  /* ================= 答题结果弹窗（ins极简卡片风） ================= */
   .scroll-mask{
     position:fixed;
     inset:0;
-    background:rgba(20,18,17,.55);
-    backdrop-filter: blur(8px);
-    -webkit-backdrop-filter: blur(8px);
+    background:rgba(0,0,0,.4);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
     display:none;
     align-items:center;
     justify-content:center;
@@ -771,72 +761,73 @@
 
   .scroll-paper{
     position:relative;
-    background:var(--paper);
+    background:rgba(255, 255, 255, 0.95);
     width:100%;
     max-width:420px;
     max-height:85vh;
     overflow-y:auto;
-    border-radius:20px;
-    padding:28px 24px 24px;
-    box-shadow:0 24px 60px rgba(0,0,0,.3);
-    animation:scrollOpen .3s ease;
+    border-radius:28px;
+    padding:32px 24px 28px;
+    box-shadow:0 20px 40px rgba(0,0,0,.1), 0 1px 3px rgba(0,0,0,.05);
+    border: 1px solid rgba(255,255,255,0.6);
+    animation:scrollOpen .4s cubic-bezier(0.16, 1, 0.3, 1);
+    scrollbar-width: none; /* Firefox */
   }
+  .scroll-paper::-webkit-scrollbar { display: none; } /* Chrome, Safari, Edge */
+
   @keyframes scrollOpen{
-    from{ opacity:0; transform:scale(.94) translateY(10px); }
+    from{ opacity:0; transform:scale(.95) translateY(15px); }
     to{ opacity:1; transform:scale(1) translateY(0); }
   }
 
   .scroll-title{
-    font-family:Georgia,"Songti SC",serif;
-    font-size:19px;
+    font-family:-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, sans-serif;
+    font-size:20px;
     font-weight:700;
     text-align:center;
-    margin-bottom:20px;
+    margin-bottom:24px;
     color:var(--ink);
-    letter-spacing:.01em;
+    letter-spacing:.02em;
   }
 
   .scroll-item{
     position:relative;
-    padding:14px 14px 14px 18px;
-    margin-bottom:10px;
-    background:rgba(255,255,255,.55);
-    border-radius:10px;
-    border:1px solid rgba(168,50,30,.14);
+    padding:16px 18px;
+    margin-bottom:12px;
+    background:#f8f9fa;
+    border-radius:16px;
+    border:1px solid rgba(0,0,0,.03);
+    box-shadow:0 2px 8px rgba(0,0,0,.02);
+    transition:transform .2s ease;
+    overflow:visible;
+  }
+  .scroll-item:hover {
+    transform: translateY(-2px);
   }
   .scroll-item:last-child{ margin-bottom:0; }
-  .scroll-item::before{
-    content:"";
-    position:absolute;
-    left:0; top:12px; bottom:12px;
-    width:3px;
-    border-radius:2px;
-    background:var(--accent);
-    opacity:.6;
-  }
+  
   .scroll-q{
-    font-family:Georgia,"Songti SC",serif;
-    font-size:15.5px;
-    font-weight:700;
-    margin-bottom:9px;
+    font-family:-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    font-size:15px;
+    font-weight:600;
+    margin-bottom:10px;
     line-height:1.5;
     color:var(--ink);
   }
-  .scroll-item{
-    overflow:visible;
-  }
+  
+  /* 图章逻辑完美保留 */
   .scroll-item.item-correct::after,
   .scroll-item.item-wrong::after{
     content:"";
     position:absolute;
-    left:-16px; top:-16px;
-    width:54px; height:54px;
+    left:-12px; top:-12px;
+    width:50px; height:50px;
     background-size:contain;
     background-repeat:no-repeat;
     background-position:center;
     z-index:3;
     pointer-events:none;
-    filter:drop-shadow(0 3px 4px rgba(0,0,0,.3));
+    filter:drop-shadow(0 4px 6px rgba(0,0,0,.15));
   }
   .scroll-item.item-correct::after{
     background-image:url('https://raw.githubusercontent.com/yyasat/TUCHUANG/main/mrajxa4a3aofm-无标题12_20260707191326.png');
@@ -846,62 +837,77 @@
     background-image:url('https://raw.githubusercontent.com/yyasat/TUCHUANG/main/mrajxftb0xi1k-无标题11_20260707191356.png');
     transform:rotate(10deg);
   }
+  
   .scroll-success{
-    font-size:13.5px;
+    font-size:14px;
     color:var(--ink);
     line-height:1.6;
+    text-align:center;
+    font-weight:500;
   }
   .scroll-your{
     font-size:13px;
-    color:#9a4a3a;
-    margin-bottom:5px;
+    color:#ff6b6b;
+    margin-bottom:6px;
     line-height:1.5;
+    display:flex;
+    align-items:center;
+    gap:6px;
   }
+  .scroll-your::before { content:"×"; font-weight:bold; font-size:16px; }
+  
   .scroll-correct{
     font-size:13px;
-    color:#2f6b3a;
+    color:#51cf66;
     font-weight:600;
     line-height:1.5;
+    display:flex;
+    align-items:center;
+    gap:6px;
   }
+  .scroll-correct::before { content:"✓"; font-weight:bold; font-size:14px; }
 
   .scroll-btn-row{
     display:flex;
-    gap:10px;
-    margin-top:22px;
+    gap:12px;
+    margin-top:28px;
   }
+  
   .scroll-close-btn{
     flex:1;
-    padding:11px 26px;
-    border-radius:10px;
+    padding:14px 24px;
+    border-radius:100px;
     border:none;
-    background:var(--accent);
+    background:var(--ink);
     color:#fff;
-    font-size:14px;
+    font-size:15px;
     font-weight:600;
     letter-spacing:.02em;
     cursor:pointer;
-    box-shadow:0 6px 16px rgba(168,50,30,.3);
-    transition:transform .15s ease, box-shadow .15s ease;
+    box-shadow:0 8px 16px rgba(0,0,0,.15);
+    transition:all .2s ease;
   }
   .scroll-close-btn:hover{
-    transform:translateY(-1px);
-    box-shadow:0 8px 20px rgba(168,50,30,.4);
+    transform:translateY(-2px);
+    box-shadow:0 12px 20px rgba(0,0,0,.2);
+    background:#333;
   }
+  
   .scroll-review-btn{
     flex:1;
-    padding:11px 26px;
-    border-radius:10px;
-    border:1.5px solid var(--accent);
-    background:#fff;
-    color:var(--accent);
-    font-size:14px;
+    padding:14px 24px;
+    border-radius:100px;
+    border:1.5px solid var(--ink);
+    background:transparent;
+    color:var(--ink);
+    font-size:15px;
     font-weight:600;
     letter-spacing:.02em;
     cursor:pointer;
-    transition:all .15s ease;
+    transition:all .2s ease;
   }
   .scroll-review-btn:hover{
-    background:var(--accent);
+    background:var(--ink);
     color:#fff;
   }
 
