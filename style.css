@@ -841,15 +841,6 @@
     border:1px solid rgba(168,50,30,.14);
   }
   .scroll-item:last-child{ margin-bottom:0; }
-  .scroll-item::before{
-    content:"";
-    position:absolute;
-    left:0; top:12px; bottom:12px;
-    width:3px;
-    border-radius:2px;
-    background:var(--accent);
-    opacity:.6;
-  }
   .scroll-q{
     font-family:Georgia,"Songti SC",serif;
     font-size:15.5px;
@@ -861,26 +852,27 @@
   .scroll-item{
     overflow:visible;
   }
+  .scroll-item > *{
+    position:relative;
+    z-index:2;
+  }
   .scroll-item.item-correct::after,
   .scroll-item.item-wrong::after{
     content:"";
     position:absolute;
-    left:-16px; top:-16px;
-    width:54px; height:54px;
+    left:-22px; top:-22px;
+    width:100px; height:100px;
     background-size:contain;
     background-repeat:no-repeat;
     background-position:center;
-    z-index:3;
+    z-index:1;
     pointer-events:none;
-    filter:drop-shadow(0 3px 4px rgba(0,0,0,.3));
   }
   .scroll-item.item-correct::after{
     background-image:url('https://raw.githubusercontent.com/yyasat/TUCHUANG/main/mrakl2912fcib-无标题12_20260707193203.png');
-    transform:rotate(-12deg);
   }
   .scroll-item.item-wrong::after{
     background-image:url('https://raw.githubusercontent.com/yyasat/TUCHUANG/main/mrakla9eraou5-无标题11_20260707193222.png');
-    transform:rotate(10deg);
   }
   .scroll-success{
     font-size:13.5px;
