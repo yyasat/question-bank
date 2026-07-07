@@ -49,6 +49,7 @@
     <button class="graph-toggle-btn" id="docToggleBtn">📄 文档模式</button>
     <button class="graph-toggle-btn" id="graphToggleBtn">🕸️ 图表模式</button>
     <button class="graph-toggle-btn" id="quizToggleBtn">📝 答题模式</button>
+    <button class="graph-toggle-btn" id="quizBankBtn">🗂️ 题库管理</button>
   </div>
   <div class="tabs" id="storyBar"></div>
 </div>
@@ -117,6 +118,18 @@
       <button class="scroll-review-btn" id="scrollReviewBtn" style="display:none;">回顾答题</button>
       <button class="scroll-close-btn" id="scrollCloseBtn">确定</button>
     </div>
+  </div>
+</div>
+
+<!-- 题库集中编辑弹窗 -->
+<div class="quiz-mask" id="quizBankMask">
+  <div class="quiz-bank-panel">
+    <div class="quiz-bank-header">
+      <h3>题库集中编辑</h3>
+      <button class="quiz-close-btn" id="quizBankCloseBtn">✕</button>
+    </div>
+    <input type="text" id="quizBankSearch" class="quiz-bank-search" placeholder="搜索题目关键词…">
+    <div class="quiz-bank-list" id="quizBankList"></div>
   </div>
 </div>
 

@@ -103,7 +103,7 @@
 
   /* ================= 模式切换：药丸形分段按钮，自动换到搜索框下一行 ================= */
   .graph-toggle-btn {
-    flex:1 1 33%;
+    flex:1 1 calc(50% - 5px);
     box-sizing:border-box;
     background:#fff;
     color:var(--ink);
@@ -928,3 +928,111 @@
     background:var(--accent);
     color:#fff;
   }
+
+  /* ================= 题库集中编辑面板 ================= */
+  .quiz-bank-panel{
+    background:var(--paper);
+    width:100%;
+    max-width:560px;
+    max-height:88vh;
+    display:flex;
+    flex-direction:column;
+    border-radius:18px;
+    padding:22px 22px 18px;
+    box-shadow:0 20px 60px rgba(0,0,0,.35);
+    animation:slideUp .25s ease;
+  }
+  .quiz-bank-header{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    margin-bottom:14px;
+  }
+  .quiz-bank-header h3{
+    font-family:Georgia,"Songti SC",serif;
+    font-size:19px;
+    margin:0;
+  }
+  .quiz-bank-search{
+    width:100%;
+    border:1px solid var(--hair);
+    border-radius:8px;
+    padding:9px 12px;
+    font-size:13.5px;
+    font-family:inherit;
+    background:#fff;
+    outline:none;
+    margin-bottom:14px;
+    box-sizing:border-box;
+  }
+  .quiz-bank-list{
+    overflow-y:auto;
+    display:flex;
+    flex-direction:column;
+    gap:12px;
+    padding-right:2px;
+  }
+  .quiz-bank-row{
+    border:1.5px solid var(--hair);
+    border-radius:12px;
+    padding:14px 16px;
+    background:#fff;
+    position:relative;
+  }
+  .quiz-bank-row.qb-done{
+    border-color:var(--accent);
+  }
+  .qb-badge{
+    position:absolute;
+    top:12px; right:14px;
+    font-size:10.5px;
+    font-weight:700;
+    letter-spacing:.03em;
+    padding:2px 8px;
+    border-radius:20px;
+    background:var(--hair);
+    color:var(--sub);
+  }
+  .quiz-bank-row.qb-done .qb-badge{
+    background:var(--accent);
+    color:#fff;
+  }
+  .quiz-bank-q{
+    font-family:Georgia,"Songti SC",serif;
+    font-size:15px;
+    font-weight:700;
+    margin-bottom:6px;
+    padding-right:60px;
+    line-height:1.5;
+  }
+  .quiz-bank-correct{
+    font-size:12.5px;
+    color:var(--sub);
+    margin-bottom:10px;
+  }
+  .quiz-bank-inputs{
+    display:flex;
+    flex-wrap:wrap;
+    gap:8px;
+  }
+  .quiz-bank-inputs input{
+    flex:1 1 120px;
+    border:1px solid var(--hair);
+    border-radius:8px;
+    padding:8px 10px;
+    font-size:13px;
+    font-family:inherit;
+    background:var(--paper);
+    outline:none;
+  }
+  .qb-save-btn{
+    flex:0 0 auto;
+    padding:8px 16px;
+    border-radius:8px;
+    border:none;
+    background:var(--ink);
+    color:#fff;
+    font-size:13px;
+    cursor:pointer;
+  }
+  .qb-save-btn:hover{ background:var(--accent); }

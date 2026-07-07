@@ -1259,6 +1259,77 @@ async function updateItemFields(idx, patchFields){
   render(true);
 }
 
+// ================= 题库集中编辑面板 =================
+const quizBankBtn = document.getElementById("quizBankBtn");
+const quizBankMask = document.getElementById("quizBankMask");
+const quizBankCloseBtn = document.getElementById("quizBankCloseBtn");
+const quizBankSearch = document.getElementById("quizBankSearch");
+const quizBankList = document.getElementById("quizBankList");
+
+function renderQuizBankList(){
+  const kw = quizBankSearch.value.trim().toLowerCase();
+  const allData = getAllData();
+  const rows = allData.map((item, idx) => ({ item, idx }))
+    .filter(({item}) => !kw || item.q.toLowerCase().includes(kw));
+
+  if(rows.length === 0){
+    quizBankList.innerHTML = `<div class="empty">没有匹配的词条</div>`;
+    return;
+  }
+
+  quizBankList.innerHTML = rows.map(({item, idx}) => {
+    const done = item.wrongOptions && item.wrongOptions.length === 2 && item.wrongOptions[0] && item.wrongOptions[1];
+    const w1 = (item.wrongOptions && item.wrongOptions[0]) || "";
+    const w2 = (item.wrongOptions && item.wrongOptions[1]) || "";
+    return `
+      <div class="quiz-bank-row ${done ? 'qb-done' : ''}" data-idx="${idx}">
+        <div class="qb-badge">${done ? '已设置' : '未设置'}</div>
+        <div class="quiz-bank-q">${item.q}</div>
+        <div class="quiz-bank-correct">正确答案：${item.a}</div>
+        <div class="quiz-bank-inputs">
+          <input class="qb-wrong1" placeholder="错误选项 1" value="${w1.replace(/"/g,'&quot;')}">
+          <input class="qb-wrong2" placeholder="错误选项 2" value="${w2.replace(/"/g,'&quot;')}">
+          <button class="qb-save-btn" data-idx="${idx}">保存</button>
+        </div>
+      </div>
+    `;
+  }).join("");
+}
+
+quizBankBtn.addEventListener("click", () => {
+  quizBankSearch.value = "";
+  renderQuizBankList();
+  quizBankMask.classList.add("show");
+});
+
+quizBankCloseBtn.addEventListener("click", () => {
+  quizBankMask.classList.remove("show");
+});
+
+quizBankSearch.addEventListener("input", () => {
+  renderQuizBankList();
+});
+
+quizBankList.addEventListener("click", async (e) => {
+  const btn = e.target.closest(".qb-save-btn");
+  if(!btn) return;
+  const row = btn.closest(".quiz-bank-row");
+  const idx = parseInt(btn.dataset.idx);
+  const w1 = row.querySelector(".qb-wrong1").value.trim();
+  const w2 = row.querySelector(".qb-wrong2").value.trim();
+  if(!w1 || !w2){ alert("两个错误选项都要填写"); return; }
+  btn.textContent = "保存中…";
+  btn.disabled = true;
+  try{
+    await updateItemFields(idx, { wrongOptions: [w1, w2] });
+    renderQuizBankList();
+  }catch(err){
+    alert("保存失败：" + err.message);
+    btn.textContent = "保存";
+    btn.disabled = false;
+  }
+});
+
 // ================= 设置答题选项弹窗 =================
 const quizSetMask = document.getElementById("quizSetMask");
 const quizSetQ = document.getElementById("quizSetQ");
