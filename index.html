@@ -84,6 +84,13 @@
     <input id="quizSetAltQ" placeholder="例如：换个说法问同一个答案…">
     <label>别名 / 标签（可选，用于题库管理里搜索）</label>
     <input id="quizSetAlias" placeholder="给这道题起个别名，方便搜索">
+    <hr style="border:none;border-top:1px dashed var(--hair);margin:16px 0;">
+    <label>反向题目文字（可选，留空自动生成，例如"以下哪个作品是水千丞的作品？"）</label>
+    <input id="quizSetReverseQ" placeholder="留空则自动用「以下哪个…是【答案】的…？」">
+    <label>反向题错误选项 1（填一个和正确答案同类型但错的选项，如另一部作品名）</label>
+    <input id="quizReverseWrong1" placeholder="例如：《逐玉》">
+    <label>反向题错误选项 2</label>
+    <input id="quizReverseWrong2" placeholder="例如：《逐龙》">
     <div class="row">
       <button class="btn-cancel" id="quizSetCancel">取消</button>
       <button class="btn-save" id="quizSetSave">保存</button>

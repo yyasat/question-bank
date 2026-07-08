@@ -601,7 +601,7 @@ function paint(){
       const bodyHtml = items.map(item => `
         <div class="doc-item">
           <div class="post-actions">
-            <button class="action-btn quiz-set-btn ${item.wrongOptions && item.wrongOptions.length===2 ? 'quiz-set-done' : ''}" data-idx="${item._globalIndex}" title="设置答题选项">🔍</button>
+            <button class="action-btn quiz-set-btn ${(isQbDone(item) || isReverseDone(item)) ? 'quiz-set-done' : ''}" data-idx="${item._globalIndex}" title="设置答题选项">🔍</button>
             <button class="action-btn edit-btn" data-idx="${item._globalIndex}" title="编辑">✏️</button>
             <button class="action-btn del-btn" data-idx="${item._globalIndex}" title="删除">🗑️</button>
           </div>
@@ -632,7 +632,7 @@ function paint(){
     const c = catInfo(item.cat);
     return `<div class="post" draggable="true" data-global-idx="${item._globalIndex}" style="animation-delay:${Math.min(i*22,260)}ms">
       <div class="post-actions">
-        <button class="action-btn quiz-set-btn ${item.wrongOptions && item.wrongOptions.length===2 ? 'quiz-set-done' : ''}" data-idx="${item._globalIndex}" title="设置答题选项">🔍</button>
+        <button class="action-btn quiz-set-btn ${(isQbDone(item) || isReverseDone(item)) ? 'quiz-set-done' : ''}" data-idx="${item._globalIndex}" title="设置答题选项">🔍</button>
         <button class="action-btn edit-btn" data-idx="${item._globalIndex}" title="编辑">✏️</button>
         <button class="action-btn del-btn" data-idx="${item._globalIndex}" title="删除">🗑️</button>
       </div>
@@ -997,6 +997,9 @@ feed.addEventListener("click", async (e) => {
     quizWrong2.value = (targetItem.wrongOptions && targetItem.wrongOptions[1]) || "";
     quizSetAltQ.value = targetItem.quizText || "";
     quizSetAlias.value = targetItem.alias || "";
+    quizSetReverseQ.value = targetItem.reverseQuestion || "";
+    quizReverseWrong1.value = (targetItem.reverseWrongOptions && targetItem.reverseWrongOptions[0]) || "";
+    quizReverseWrong2.value = (targetItem.reverseWrongOptions && targetItem.reverseWrongOptions[1]) || "";
     quizSetMask.classList.add("show");
     return;
   }
@@ -1317,6 +1320,12 @@ let quizBankFilterMode = "all";
 function isQbDone(item){
   return item.wrongOptions && item.wrongOptions.length === 2 && item.wrongOptions[0] && item.wrongOptions[1];
 }
+function isReverseDone(item){
+  return item.reverseWrongOptions && item.reverseWrongOptions.length === 2 && item.reverseWrongOptions[0] && item.reverseWrongOptions[1];
+}
+function reverseQuestionText(item){
+  return (item.reverseQuestion && item.reverseQuestion.trim()) ? item.reverseQuestion.trim() : `以下哪一项对应的答案是"${item.a}"？`;
+}
 
 function renderQuizBankList(){
   const kw = quizBankSearch.value.trim().toLowerCase();
@@ -1324,8 +1333,9 @@ function renderQuizBankList(){
   const rows = allData.map((item, idx) => ({ item, idx }))
     .filter(({item}) => !kw || item.q.toLowerCase().includes(kw) || (item.alias||"").toLowerCase().includes(kw))
     .filter(({item}) => {
-      if(quizBankFilterMode === "done") return isQbDone(item);
-      if(quizBankFilterMode === "undone") return !isQbDone(item);
+      const done = isQbDone(item) || isReverseDone(item);
+      if(quizBankFilterMode === "done") return done;
+      if(quizBankFilterMode === "undone") return !done;
       return true;
     });
 
@@ -1335,21 +1345,32 @@ function renderQuizBankList(){
   }
 
   quizBankList.innerHTML = rows.map(({item, idx}) => {
-    const done = isQbDone(item);
+    const fDone = isQbDone(item);
+    const rDone = isReverseDone(item);
+    const done = fDone || rDone;
+    const badgeText = fDone && rDone ? '正向+反向' : fDone ? '正向已设置' : rDone ? '反向已设置' : '未设置';
     const w1 = (item.wrongOptions && item.wrongOptions[0]) || "";
     const w2 = (item.wrongOptions && item.wrongOptions[1]) || "";
     const altQ = item.quizText || "";
     const alias = item.alias || "";
+    const rq = item.reverseQuestion || "";
+    const rw1 = (item.reverseWrongOptions && item.reverseWrongOptions[0]) || "";
+    const rw2 = (item.reverseWrongOptions && item.reverseWrongOptions[1]) || "";
     return `
       <div class="quiz-bank-row ${done ? 'qb-done' : ''}" data-idx="${idx}">
-        <div class="qb-badge">${done ? '已设置' : '未设置'}</div>
+        <div class="qb-badge">${badgeText}</div>
         <div class="quiz-bank-q">${item.q}</div>
         <div class="quiz-bank-correct">正确答案：${item.a}</div>
         <div class="quiz-bank-inputs">
-          <input class="qb-wrong1" placeholder="错误选项 1" value="${w1.replace(/"/g,'&quot;')}">
-          <input class="qb-wrong2" placeholder="错误选项 2" value="${w2.replace(/"/g,'&quot;')}">
+          <input class="qb-wrong1" placeholder="正向-错误选项 1" value="${w1.replace(/"/g,'&quot;')}">
+          <input class="qb-wrong2" placeholder="正向-错误选项 2" value="${w2.replace(/"/g,'&quot;')}">
           <input class="qb-altq" placeholder="拓展问法（可选）" value="${altQ.replace(/"/g,'&quot;')}">
           <input class="qb-alias" placeholder="别名/标签（可选）" value="${alias.replace(/"/g,'&quot;')}">
+        </div>
+        <div class="quiz-bank-inputs" style="margin-top:6px;">
+          <input class="qb-reverseq" placeholder="反向题目文字（可选，留空自动生成）" value="${rq.replace(/"/g,'&quot;')}">
+          <input class="qb-rwrong1" placeholder="反向-错误选项 1（如另一个作品名）" value="${rw1.replace(/"/g,'&quot;')}">
+          <input class="qb-rwrong2" placeholder="反向-错误选项 2" value="${rw2.replace(/"/g,'&quot;')}">
           <button class="qb-save-btn" data-idx="${idx}">保存</button>
         </div>
       </div>
@@ -1390,11 +1411,22 @@ quizBankList.addEventListener("click", async (e) => {
   const w2 = row.querySelector(".qb-wrong2").value.trim();
   const altQ = row.querySelector(".qb-altq").value.trim();
   const alias = row.querySelector(".qb-alias").value.trim();
-  if(!w1 || !w2){ alert("两个错误选项都要填写"); return; }
+  const rq = row.querySelector(".qb-reverseq").value.trim();
+  const rw1 = row.querySelector(".qb-rwrong1").value.trim();
+  const rw2 = row.querySelector(".qb-rwrong2").value.trim();
+  if((w1 || w2) && !(w1 && w2)){ alert("正向题的两个错误选项要么都填，要么都留空"); return; }
+  if((rw1 || rw2) && !(rw1 && rw2)){ alert("反向题的两个错误选项要么都填，要么都留空"); return; }
+  if(!(w1 && w2) && !(rw1 && rw2)){ alert("正向题、反向题至少要设置一种的错误选项"); return; }
   btn.textContent = "保存中…";
   btn.disabled = true;
   try{
-    await updateItemFields(idx, { wrongOptions: [w1, w2], quizText: altQ || null, alias: alias || null });
+    await updateItemFields(idx, {
+      wrongOptions: (w1 && w2) ? [w1, w2] : null,
+      quizText: altQ || null,
+      alias: alias || null,
+      reverseQuestion: rq || null,
+      reverseWrongOptions: (rw1 && rw2) ? [rw1, rw2] : null
+    });
     renderQuizBankList();
   }catch(err){
     alert("保存失败：" + err.message);
@@ -1411,6 +1443,9 @@ const quizWrong1 = document.getElementById("quizWrong1");
 const quizWrong2 = document.getElementById("quizWrong2");
 const quizSetAltQ = document.getElementById("quizSetAltQ");
 const quizSetAlias = document.getElementById("quizSetAlias");
+const quizSetReverseQ = document.getElementById("quizSetReverseQ");
+const quizReverseWrong1 = document.getElementById("quizReverseWrong1");
+const quizReverseWrong2 = document.getElementById("quizReverseWrong2");
 const quizSetCancel = document.getElementById("quizSetCancel");
 const quizSetSave = document.getElementById("quizSetSave");
 let quizSetIndex = -1;
@@ -1424,11 +1459,24 @@ quizSetSave.addEventListener("click", async () => {
   const w2 = quizWrong2.value.trim();
   const altQ = quizSetAltQ.value.trim();
   const alias = quizSetAlias.value.trim();
-  if(!w1 || !w2){ alert("两个错误选项都要填写"); return; }
+  const rq = quizSetReverseQ.value.trim();
+  const rw1 = quizReverseWrong1.value.trim();
+  const rw2 = quizReverseWrong2.value.trim();
+
+  if((w1 || w2) && !(w1 && w2)){ alert("正向题的两个错误选项要么都填，要么都留空"); return; }
+  if((rw1 || rw2) && !(rw1 && rw2)){ alert("反向题的两个错误选项要么都填，要么都留空"); return; }
+  if(!(w1 && w2) && !(rw1 && rw2)){ alert("正向题、反向题至少要设置一种的错误选项，才能加入答题模式"); return; }
+
   quizSetSave.textContent = "保存中…";
   quizSetSave.disabled = true;
   try{
-    await updateItemFields(quizSetIndex, { wrongOptions: [w1, w2], quizText: altQ || null, alias: alias || null });
+    await updateItemFields(quizSetIndex, {
+      wrongOptions: (w1 && w2) ? [w1, w2] : null,
+      quizText: altQ || null,
+      alias: alias || null,
+      reverseQuestion: rq || null,
+      reverseWrongOptions: (rw1 && rw2) ? [rw1, rw2] : null
+    });
     quizSetMask.classList.remove("show");
   }catch(e){
     alert("保存失败：" + e.message);
@@ -1475,7 +1523,7 @@ quizToggleBtn.addEventListener("click", () => {
   QUIZ_TOTAL_TIME = quizSettings.time;
 
   const allData = getAllData();
-  let eligible = allData.filter(it => it.wrongOptions && it.wrongOptions.length === 2 && it.wrongOptions[0] && it.wrongOptions[1]);
+  let eligible = allData.filter(it => isQbDone(it) || isReverseDone(it));
   const catRestricted = activeCat !== "all";
   if(catRestricted){
     eligible = eligible.filter(it => it.cat === activeCat);
@@ -1486,11 +1534,24 @@ quizToggleBtn.addEventListener("click", () => {
     return;
   }
   const picked = shuffleArray(eligible).slice(0, QUIZ_QUESTION_COUNT);
-  quizPool = picked.map(it => ({
-    q: (it.quizText && it.quizText.trim()) ? it.quizText : it.q,
-    correct: it.a,
-    options: shuffleArray([it.a, it.wrongOptions[0], it.wrongOptions[1]])
-  }));
+  quizPool = picked.map(it => {
+    const fOk = isQbDone(it);
+    const rOk = isReverseDone(it);
+    // 两种题型都设置了的话，随机抽一种；只设置了一种就固定用那种
+    const useReverse = rOk && (!fOk || Math.random() < 0.5);
+    if(useReverse){
+      return {
+        q: reverseQuestionText(it),
+        correct: it.q,
+        options: shuffleArray([it.q, it.reverseWrongOptions[0], it.reverseWrongOptions[1]])
+      };
+    }
+    return {
+      q: (it.quizText && it.quizText.trim()) ? it.quizText : it.q,
+      correct: it.a,
+      options: shuffleArray([it.a, it.wrongOptions[0], it.wrongOptions[1]])
+    };
+  });
   quizIndex = 0;
   quizAnswers = new Array(QUIZ_QUESTION_COUNT).fill(null);
   if(quizModeTitle) quizModeTitle.textContent = quizSettings.title;
