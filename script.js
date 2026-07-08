@@ -871,6 +871,50 @@ else if(cloudMode==="claude"){ syncPromises.push(loadItemOverrides().then(()=> r
 if(cloudMode==="firebase"){ syncPromises.push(watchFirebase()); }
 else if(cloudMode==="claude"){ syncPromises.push(loadClaudeEntries().then(()=>{ updateIssueLine(); render(true); })); }
 
+// ================= 答题模式设置（标题 / 每次题量 / 限时，可自定义并云端同步） =================
+let quizSettings = { title: "答题模式", count: 5, time: 60 };
+
+function applyQuizSettingsUI(){
+  const btn = document.getElementById("quizToggleBtn");
+  const title = document.getElementById("quizModeTitle");
+  if(btn) btn.textContent = `📝 ${quizSettings.title}`;
+  if(title) title.textContent = quizSettings.title;
+}
+applyQuizSettingsUI();
+
+async function saveQuizSettings(newVal){
+  quizSettings = { ...quizSettings, ...newVal };
+  applyQuizSettingsUI();
+  try{
+    if(cloudMode === "firebase"){
+      await dbSet(dbRef(db, "quizSettings"), quizSettings);
+    } else if(cloudMode === "claude"){
+      await window.storage.set("quizSettings", JSON.stringify(quizSettings), true);
+    }
+  }catch(e){ console.error("答题设置保存失败", e); }
+}
+
+function watchQuizSettings(){
+  return new Promise(resolve=>{
+    let done=false;
+    dbOnValue(dbRef(db, "quizSettings"), (snapshot)=>{
+      const val = snapshot.val();
+      if(val) quizSettings = { ...quizSettings, ...val };
+      applyQuizSettingsUI();
+      if(!done){ done=true; resolve(); }
+    });
+  });
+}
+async function loadClaudeQuizSettings(){
+  try{
+    const res = await window.storage.get("quizSettings", true);
+    if(res && res.value) quizSettings = { ...quizSettings, ...JSON.parse(res.value) };
+  }catch(e){}
+  applyQuizSettingsUI();
+}
+if(cloudMode==="firebase"){ syncPromises.push(watchQuizSettings()); }
+else if(cloudMode==="claude"){ syncPromises.push(loadClaudeQuizSettings()); }
+
 // ================= 顶部同步进度提示条：全部同步任务完成后自动淡出消失 =================
 const syncBanner = document.getElementById("syncBanner");
 function hideSyncBanner(){
@@ -951,6 +995,8 @@ feed.addEventListener("click", async (e) => {
     quizSetCorrect.value = targetItem.a;
     quizWrong1.value = (targetItem.wrongOptions && targetItem.wrongOptions[0]) || "";
     quizWrong2.value = (targetItem.wrongOptions && targetItem.wrongOptions[1]) || "";
+    quizSetAltQ.value = targetItem.quizText || "";
+    quizSetAlias.value = targetItem.alias || "";
     quizSetMask.classList.add("show");
     return;
   }
@@ -1276,7 +1322,7 @@ function renderQuizBankList(){
   const kw = quizBankSearch.value.trim().toLowerCase();
   const allData = getAllData();
   const rows = allData.map((item, idx) => ({ item, idx }))
-    .filter(({item}) => !kw || item.q.toLowerCase().includes(kw))
+    .filter(({item}) => !kw || item.q.toLowerCase().includes(kw) || (item.alias||"").toLowerCase().includes(kw))
     .filter(({item}) => {
       if(quizBankFilterMode === "done") return isQbDone(item);
       if(quizBankFilterMode === "undone") return !isQbDone(item);
@@ -1292,6 +1338,8 @@ function renderQuizBankList(){
     const done = isQbDone(item);
     const w1 = (item.wrongOptions && item.wrongOptions[0]) || "";
     const w2 = (item.wrongOptions && item.wrongOptions[1]) || "";
+    const altQ = item.quizText || "";
+    const alias = item.alias || "";
     return `
       <div class="quiz-bank-row ${done ? 'qb-done' : ''}" data-idx="${idx}">
         <div class="qb-badge">${done ? '已设置' : '未设置'}</div>
@@ -1300,6 +1348,8 @@ function renderQuizBankList(){
         <div class="quiz-bank-inputs">
           <input class="qb-wrong1" placeholder="错误选项 1" value="${w1.replace(/"/g,'&quot;')}">
           <input class="qb-wrong2" placeholder="错误选项 2" value="${w2.replace(/"/g,'&quot;')}">
+          <input class="qb-altq" placeholder="拓展问法（可选）" value="${altQ.replace(/"/g,'&quot;')}">
+          <input class="qb-alias" placeholder="别名/标签（可选）" value="${alias.replace(/"/g,'&quot;')}">
           <button class="qb-save-btn" data-idx="${idx}">保存</button>
         </div>
       </div>
@@ -1338,11 +1388,13 @@ quizBankList.addEventListener("click", async (e) => {
   const idx = parseInt(btn.dataset.idx);
   const w1 = row.querySelector(".qb-wrong1").value.trim();
   const w2 = row.querySelector(".qb-wrong2").value.trim();
+  const altQ = row.querySelector(".qb-altq").value.trim();
+  const alias = row.querySelector(".qb-alias").value.trim();
   if(!w1 || !w2){ alert("两个错误选项都要填写"); return; }
   btn.textContent = "保存中…";
   btn.disabled = true;
   try{
-    await updateItemFields(idx, { wrongOptions: [w1, w2] });
+    await updateItemFields(idx, { wrongOptions: [w1, w2], quizText: altQ || null, alias: alias || null });
     renderQuizBankList();
   }catch(err){
     alert("保存失败：" + err.message);
@@ -1357,6 +1409,8 @@ const quizSetQ = document.getElementById("quizSetQ");
 const quizSetCorrect = document.getElementById("quizSetCorrect");
 const quizWrong1 = document.getElementById("quizWrong1");
 const quizWrong2 = document.getElementById("quizWrong2");
+const quizSetAltQ = document.getElementById("quizSetAltQ");
+const quizSetAlias = document.getElementById("quizSetAlias");
 const quizSetCancel = document.getElementById("quizSetCancel");
 const quizSetSave = document.getElementById("quizSetSave");
 let quizSetIndex = -1;
@@ -1368,11 +1422,13 @@ quizSetCancel.addEventListener("click", () => {
 quizSetSave.addEventListener("click", async () => {
   const w1 = quizWrong1.value.trim();
   const w2 = quizWrong2.value.trim();
+  const altQ = quizSetAltQ.value.trim();
+  const alias = quizSetAlias.value.trim();
   if(!w1 || !w2){ alert("两个错误选项都要填写"); return; }
   quizSetSave.textContent = "保存中…";
   quizSetSave.disabled = true;
   try{
-    await updateItemFields(quizSetIndex, { wrongOptions: [w1, w2] });
+    await updateItemFields(quizSetIndex, { wrongOptions: [w1, w2], quizText: altQ || null, alias: alias || null });
     quizSetMask.classList.remove("show");
   }catch(e){
     alert("保存失败：" + e.message);
@@ -1398,8 +1454,10 @@ const scrollContent = document.getElementById("scrollContent");
 const scrollCloseBtn = document.getElementById("scrollCloseBtn");
 const scrollReviewBtn = document.getElementById("scrollReviewBtn");
 
-const QUIZ_QUESTION_COUNT = 5;
-const QUIZ_TOTAL_TIME = 60;
+let QUIZ_QUESTION_COUNT = quizSettings.count;
+let QUIZ_TOTAL_TIME = quizSettings.time;
+const quizModeTitle = document.getElementById("quizModeTitle");
+const quizSettingsBtn = document.getElementById("quizSettingsBtn");
 let quizPool = [];
 let quizIndex = 0;
 let quizAnswers = [];
@@ -1413,23 +1471,47 @@ function shuffleArray(arr){
 }
 
 quizToggleBtn.addEventListener("click", () => {
+  QUIZ_QUESTION_COUNT = quizSettings.count;
+  QUIZ_TOTAL_TIME = quizSettings.time;
+
   const allData = getAllData();
-  const eligible = allData.filter(it => it.wrongOptions && it.wrongOptions.length === 2 && it.wrongOptions[0] && it.wrongOptions[1]);
+  let eligible = allData.filter(it => it.wrongOptions && it.wrongOptions.length === 2 && it.wrongOptions[0] && it.wrongOptions[1]);
+  const catRestricted = activeCat !== "all";
+  if(catRestricted){
+    eligible = eligible.filter(it => it.cat === activeCat);
+  }
   if(eligible.length < QUIZ_QUESTION_COUNT){
-    alert(`已设置答题选项的词条只有 ${eligible.length} 条，至少需要 ${QUIZ_QUESTION_COUNT} 条才能开始答题模式。\n点击词条旁的 🔍 图标即可设置。`);
+    const catTip = catRestricted ? `（当前只统计「${catInfo(activeCat).label}」这一分类，切到"全部"标签可以扩大范围）` : "";
+    alert(`已设置答题选项的词条只有 ${eligible.length} 条，至少需要 ${QUIZ_QUESTION_COUNT} 条才能开始答题模式。${catTip}\n点击词条旁的 🔍 图标即可设置。`);
     return;
   }
   const picked = shuffleArray(eligible).slice(0, QUIZ_QUESTION_COUNT);
   quizPool = picked.map(it => ({
-    q: it.q,
+    q: (it.quizText && it.quizText.trim()) ? it.quizText : it.q,
     correct: it.a,
     options: shuffleArray([it.a, it.wrongOptions[0], it.wrongOptions[1]])
   }));
   quizIndex = 0;
   quizAnswers = new Array(QUIZ_QUESTION_COUNT).fill(null);
+  if(quizModeTitle) quizModeTitle.textContent = quizSettings.title;
   quizMask.classList.add("show");
   renderQuizQuestion();
   startQuizTimer();
+});
+
+quizSettingsBtn.addEventListener("click", async () => {
+  const newTitle = prompt("答题模式标题：", quizSettings.title);
+  if(newTitle === null || !newTitle.trim()){ if(newTitle !== null) alert("标题不能为空"); return; }
+  const countStr = prompt("每次答题的题目数量：", String(quizSettings.count));
+  if(countStr === null) return;
+  const timeStr = prompt("答题总时长（单位：秒）：", String(quizSettings.time));
+  if(timeStr === null) return;
+  const count = parseInt(countStr, 10);
+  const time = parseInt(timeStr, 10);
+  if(!Number.isInteger(count) || count < 1){ alert("题目数量需为大于 0 的整数"); return; }
+  if(!Number.isInteger(time) || time < 5){ alert("答题时长至少 5 秒"); return; }
+  await saveQuizSettings({ title: newTitle.trim(), count, time });
+  alert("答题设置已保存");
 });
 
 function renderQuizQuestion(){
