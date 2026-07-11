@@ -503,6 +503,26 @@
     from{ transform:translateY(16px); opacity:0; }
     to{ transform:translateY(0); opacity:1; }
   }
+  .qset-tabs{
+    display:flex;
+    gap:8px;
+    margin:16px 0 4px;
+  }
+  .qset-tab-btn{
+    flex:1;
+    padding:8px 10px;
+    border:1px solid var(--hair);
+    border-radius:8px;
+    background:#fff;
+    font-size:13px;
+    font-family:inherit;
+    color:var(--sub);
+    cursor:pointer;
+    transition:.15s;
+  }
+  .qset-tab-btn:hover{ background:#f2f0ec; }
+  .qset-tab-btn.active{ background:var(--ink); color:#fff; border-color:var(--ink); }
+  .qset-page{ margin-top:4px; }
   .sheet h3{
     font-family:Georgia,"Songti SC",serif;
     font-size:18px;
