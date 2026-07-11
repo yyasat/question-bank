@@ -1078,13 +1078,13 @@ if(restoreBackupBtn) restoreBackupBtn.addEventListener("click", restoreLastBacku
       const raw = localStorage.getItem(FAV_KEY);
       if(raw){
         const arr = JSON.parse(raw).filter(id => FAV_CANDIDATES.includes(id));
-        if(arr.length) return arr.slice(0, 2);
+        if(arr.length) return arr.slice(0, 4);
       }
     }catch(e){}
     return ["quizToggleBtn", "quizBankBtn"]; // 默认常用：答题模式 + 题库管理
   }
   function setFavIds(arr){
-    try{ localStorage.setItem(FAV_KEY, JSON.stringify(arr.slice(0, 2))); }catch(e){}
+    try{ localStorage.setItem(FAV_KEY, JSON.stringify(arr.slice(0, 4))); }catch(e){}
   }
 
   // 按当前常用设置，把按钮实际移动到「常显固定行」或「展开更多行」
@@ -1126,7 +1126,7 @@ if(restoreBackupBtn) restoreBackupBtn.addEventListener("click", restoreLastBacku
       const boxes = [...favOptionList.querySelectorAll("input[type=checkbox]")];
       const checkedCount = boxes.filter(b=>b.checked).length;
       boxes.forEach(b=>{
-        const isLimited = checkedCount >= 2 && !b.checked;
+        const isLimited = checkedCount >= 4 && !b.checked;
         b.disabled = isLimited;
         b.closest(".fav-option").classList.toggle("disabled", isLimited);
       });
@@ -1146,32 +1146,9 @@ if(restoreBackupBtn) restoreBackupBtn.addEventListener("click", restoreLastBacku
   }
 })();
 
-// ================= 下滑收起模式切换按钮，上滑一点再展开 =================
-(function(){
-  const topbarActions = document.getElementById("topbarActions");
-  if(!topbarActions) return;
-  let lastY = window.scrollY;
-  let accum = 0; // 累计同方向滑动距离，避免手机上一次事件只滑几像素、永远达不到阈值
-  window.addEventListener("scroll", ()=>{
-    const currentY = Math.max(0, window.scrollY);
-    const delta = currentY - lastY;
-    lastY = currentY;
-
-    if(currentY <= 60){
-      topbarActions.classList.remove("collapsed");
-      accum = 0;
-      return;
-    }
-
-    if(delta > 0){
-      accum = accum > 0 ? accum + delta : delta;
-      if(accum > 15){ topbarActions.classList.add("collapsed"); }
-    } else if(delta < 0){
-      accum = accum < 0 ? accum + delta : delta;
-      if(accum < -15){ topbarActions.classList.remove("collapsed"); }
-    }
-  }, { passive:true });
-})();
+// 说明：之前有"下滑隐藏/上滑显示模式按钮"的滚动监听，
+// 与本次"常用模式固定常显"的需求冲突（滚动时会把常显的4个固定位一起挡住/隐藏，导致点不到），
+// 所以这里去掉滚动隐藏，只保留上面的手动展开/收起按钮。
 
 if(cloudMode === "none" || syncPromises.length === 0){
   hideSyncBanner();
