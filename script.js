@@ -932,7 +932,8 @@ btnSave.addEventListener("click", async ()=>{
   const q = inQ.value.trim();
   const a = inA.value.trim();
   if(!q || !a){ alert("问题和答案不能为空"); return; }
-  const itemData = { cat: inCat.value, q, a, extra: inExtra.value.trim() || null };
+  const baseItem = currentEditIndex !== -1 ? getAllData()[currentEditIndex] : null;
+  const itemData = { ...(baseItem || {}), cat: inCat.value, q, a, extra: inExtra.value.trim() || null };
 
   btnSave.textContent = "同步中…";
   btnSave.disabled = true;
