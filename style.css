@@ -71,8 +71,6 @@
     flex-wrap:wrap;
     align-items:center;
     gap:10px 10px;
-    border-bottom:1.5px solid var(--rule);
-    padding-bottom:10px;
   }
   .searchbox .icon{
     font-size:13px;
@@ -99,6 +97,29 @@
     padding:2px 4px;
     display:none;
     flex:0 0 auto;
+  }
+
+  /* ================= 模式切换按钮容器：向下滑动时收起，向上滑动时展开 ================= */
+  .topbar-actions{
+    max-width:600px;
+    margin:0 auto;
+    display:flex;
+    flex-wrap:wrap;
+    gap:10px 10px;
+    max-height:200px;
+    opacity:1;
+    overflow:hidden;
+    padding-top:10px;
+    padding-bottom:10px;
+    border-bottom:1.5px solid var(--rule);
+    transition:max-height .28s ease, opacity .2s ease, padding .28s ease, border-color .28s ease;
+  }
+  .topbar-actions.collapsed{
+    max-height:0;
+    opacity:0;
+    padding-top:0;
+    padding-bottom:0;
+    border-bottom-color:transparent;
   }
 
   /* ================= 模式切换：药丸形分段按钮，自动换到搜索框下一行 ================= */

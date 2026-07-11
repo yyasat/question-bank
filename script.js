@@ -1057,6 +1057,25 @@ async function restoreLastBackup(){
 const restoreBackupBtn = document.getElementById("restoreBackupBtn");
 if(restoreBackupBtn) restoreBackupBtn.addEventListener("click", restoreLastBackup);
 
+// ================= 下滑收起模式切换按钮，上滑一点再展开 =================
+(function(){
+  const topbarActions = document.getElementById("topbarActions");
+  if(!topbarActions) return;
+  let lastY = window.scrollY;
+  window.addEventListener("scroll", ()=>{
+    const currentY = window.scrollY;
+    const delta = currentY - lastY;
+    if(currentY <= 60){
+      topbarActions.classList.remove("collapsed");
+    } else if(delta > 6){
+      topbarActions.classList.add("collapsed");
+    } else if(delta < -6){
+      topbarActions.classList.remove("collapsed");
+    }
+    lastY = currentY;
+  }, { passive:true });
+})();
+
 if(cloudMode === "none" || syncPromises.length === 0){
   hideSyncBanner();
   saveSyncBackup();
