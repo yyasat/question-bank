@@ -1362,18 +1362,22 @@ function renderQuizBankList(){
         <div class="qb-badge">${badgeText}</div>
         <div class="quiz-bank-q">${item.q}</div>
         <div class="quiz-bank-correct">正确答案：${item.a}</div>
-        <div class="quiz-bank-inputs">
+        <div class="quiz-bank-filter qb-tab-bar">
+          <button class="qb-filter-btn qb-tab-btn active" data-qbtab="forward" type="button">正向题设置</button>
+          <button class="qb-filter-btn qb-tab-btn" data-qbtab="reverse" type="button">反向题设置</button>
+        </div>
+        <div class="quiz-bank-inputs qb-page-forward">
           <input class="qb-wrong1" placeholder="正向-错误选项 1" value="${w1.replace(/"/g,'&quot;')}">
           <input class="qb-wrong2" placeholder="正向-错误选项 2" value="${w2.replace(/"/g,'&quot;')}">
           <input class="qb-altq" placeholder="拓展问法（可选）" value="${altQ.replace(/"/g,'&quot;')}">
           <input class="qb-alias" placeholder="别名/标签（可选）" value="${alias.replace(/"/g,'&quot;')}">
         </div>
-        <div class="quiz-bank-inputs" style="margin-top:6px;">
+        <div class="quiz-bank-inputs qb-page-reverse" style="display:none;">
           <input class="qb-reverseq" placeholder="反向题目文字（可选，留空自动生成）" value="${rq.replace(/"/g,'&quot;')}">
           <input class="qb-rwrong1" placeholder="反向-错误选项 1（如另一个作品名）" value="${rw1.replace(/"/g,'&quot;')}">
           <input class="qb-rwrong2" placeholder="反向-错误选项 2" value="${rw2.replace(/"/g,'&quot;')}">
-          <button class="qb-save-btn" data-idx="${idx}">保存</button>
         </div>
+        <button class="qb-save-btn" data-idx="${idx}">保存</button>
       </div>
     `;
   }).join("");
@@ -1404,6 +1408,14 @@ quizBankFilter.addEventListener("click", (e) => {
 });
 
 quizBankList.addEventListener("click", async (e) => {
+  const tabBtn = e.target.closest(".qb-tab-btn");
+  if(tabBtn){
+    const row = tabBtn.closest(".quiz-bank-row");
+    row.querySelectorAll(".qb-tab-btn").forEach(b => b.classList.toggle("active", b === tabBtn));
+    row.querySelector(".qb-page-forward").style.display = tabBtn.dataset.qbtab === "forward" ? "" : "none";
+    row.querySelector(".qb-page-reverse").style.display = tabBtn.dataset.qbtab === "reverse" ? "" : "none";
+    return;
+  }
   const btn = e.target.closest(".qb-save-btn");
   if(!btn) return;
   const row = btn.closest(".quiz-bank-row");
