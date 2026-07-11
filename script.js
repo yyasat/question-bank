@@ -1000,7 +1000,7 @@ feed.addEventListener("click", async (e) => {
     quizSetReverseQ.value = targetItem.reverseQuestion || "";
     quizReverseWrong1.value = (targetItem.reverseWrongOptions && targetItem.reverseWrongOptions[0]) || "";
     quizReverseWrong2.value = (targetItem.reverseWrongOptions && targetItem.reverseWrongOptions[1]) || "";
-    switchQsetPage("forward");
+    switchQsetTab("forward");
     quizSetMask.classList.add("show");
     return;
   }
@@ -1447,21 +1447,20 @@ const quizSetAlias = document.getElementById("quizSetAlias");
 const quizSetReverseQ = document.getElementById("quizSetReverseQ");
 const quizReverseWrong1 = document.getElementById("quizReverseWrong1");
 const quizReverseWrong2 = document.getElementById("quizReverseWrong2");
-const quizSetCancel = document.getElementById("quizSetCancel");
-const qsetTabs = document.getElementById("qsetTabs");
-const qsetPageForward = document.getElementById("qsetPageForward");
-const qsetPageReverse = document.getElementById("qsetPageReverse");
-
-function switchQsetPage(page){
-  qsetTabs.querySelectorAll(".qset-tab-btn").forEach(b => b.classList.toggle("active", b.dataset.page === page));
-  qsetPageForward.style.display = page === "forward" ? "" : "none";
-  qsetPageReverse.style.display = page === "reverse" ? "" : "none";
+const qsetTabBar = document.getElementById("qsetTabBar");
+const qsetForwardPage = document.getElementById("qsetForwardPage");
+const qsetReversePage = document.getElementById("qsetReversePage");
+function switchQsetTab(tab){
+  qsetTabBar.querySelectorAll(".qb-filter-btn").forEach(b => b.classList.toggle("active", b.dataset.qsetTab === tab));
+  qsetForwardPage.style.display = tab === "forward" ? "" : "none";
+  qsetReversePage.style.display = tab === "reverse" ? "" : "none";
 }
-qsetTabs.addEventListener("click", (e) => {
-  const btn = e.target.closest(".qset-tab-btn");
+qsetTabBar.addEventListener("click", (e) => {
+  const btn = e.target.closest("[data-qset-tab]");
   if(!btn) return;
-  switchQsetPage(btn.dataset.page);
+  switchQsetTab(btn.dataset.qsetTab);
 });
+const quizSetCancel = document.getElementById("quizSetCancel");
 const quizSetSave = document.getElementById("quizSetSave");
 let quizSetIndex = -1;
 
