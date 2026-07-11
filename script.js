@@ -1057,6 +1057,95 @@ async function restoreLastBackup(){
 const restoreBackupBtn = document.getElementById("restoreBackupBtn");
 if(restoreBackupBtn) restoreBackupBtn.addEventListener("click", restoreLastBackup);
 
+// ================= 常用模式自定义：固定4个位（2个自选常用模式 + 常用设置 + 展开/收起），其余收进展开面板 =================
+(function(){
+  const FAV_KEY = "qbank_fav_modes";
+  const FAV_CANDIDATES = ["docToggleBtn", "graphToggleBtn", "quizToggleBtn", "quizBankBtn"];
+  const ALL_MODE_BTN_IDS = ["docToggleBtn", "graphToggleBtn", "quizToggleBtn", "quizSettingsBtn", "quizBankBtn", "restoreBackupBtn"];
+
+  const modeFixedRow = document.getElementById("modeFixedRow");
+  const modeMoreRow = document.getElementById("modeMoreRow");
+  const favSettingsBtn = document.getElementById("favSettingsBtn");
+  const modeExpandBtn = document.getElementById("modeExpandBtn");
+  const favMask = document.getElementById("favMask");
+  const favOptionList = document.getElementById("favOptionList");
+  const favCancel = document.getElementById("favCancel");
+  const favSave = document.getElementById("favSave");
+  if(!modeFixedRow || !modeMoreRow) return;
+
+  function getFavIds(){
+    try{
+      const raw = localStorage.getItem(FAV_KEY);
+      if(raw){
+        const arr = JSON.parse(raw).filter(id => FAV_CANDIDATES.includes(id));
+        if(arr.length) return arr.slice(0, 2);
+      }
+    }catch(e){}
+    return ["quizToggleBtn", "quizBankBtn"]; // 默认常用：答题模式 + 题库管理
+  }
+  function setFavIds(arr){
+    try{ localStorage.setItem(FAV_KEY, JSON.stringify(arr.slice(0, 2))); }catch(e){}
+  }
+
+  // 按当前常用设置，把按钮实际移动到「常显固定行」或「展开更多行」
+  function applyFavLayout(){
+    const favIds = getFavIds();
+    ALL_MODE_BTN_IDS.forEach(id=>{
+      const el = document.getElementById(id);
+      if(!el) return;
+      if(favIds.includes(id)){
+        modeFixedRow.insertBefore(el, favSettingsBtn);
+      } else {
+        modeMoreRow.appendChild(el);
+      }
+    });
+  }
+  applyFavLayout();
+
+  // 展开 / 收起 更多模式
+  if(modeExpandBtn){
+    modeExpandBtn.addEventListener("click", ()=>{
+      const collapsed = modeMoreRow.classList.toggle("collapsed");
+      modeExpandBtn.textContent = collapsed ? "▾ 更多" : "▴ 收起";
+    });
+  }
+
+  // 自定义常用模式弹窗
+  if(favSettingsBtn && favMask){
+    favSettingsBtn.addEventListener("click", ()=>{
+      const favIds = getFavIds();
+      favOptionList.querySelectorAll("input[type=checkbox]").forEach(cb=>{
+        cb.checked = favIds.includes(cb.value);
+        cb.closest(".fav-option").classList.remove("disabled");
+        cb.disabled = false;
+      });
+      favMask.classList.add("show");
+    });
+
+    favOptionList.addEventListener("change", ()=>{
+      const boxes = [...favOptionList.querySelectorAll("input[type=checkbox]")];
+      const checkedCount = boxes.filter(b=>b.checked).length;
+      boxes.forEach(b=>{
+        const isLimited = checkedCount >= 2 && !b.checked;
+        b.disabled = isLimited;
+        b.closest(".fav-option").classList.toggle("disabled", isLimited);
+      });
+    });
+
+    if(favCancel) favCancel.addEventListener("click", ()=> favMask.classList.remove("show"));
+    favMask.addEventListener("click", (e)=>{ if(e.target===favMask) favMask.classList.remove("show"); });
+
+    if(favSave) favSave.addEventListener("click", ()=>{
+      const checked = [...favOptionList.querySelectorAll("input[type=checkbox]:checked")].map(b=>b.value);
+      if(checked.length > 0){
+        setFavIds(checked);
+        applyFavLayout();
+      }
+      favMask.classList.remove("show");
+    });
+  }
+})();
+
 // ================= 下滑收起模式切换按钮，上滑一点再展开 =================
 (function(){
   const topbarActions = document.getElementById("topbarActions");

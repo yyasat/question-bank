@@ -48,12 +48,18 @@
     <button class="clear-btn" id="clearBtn">✕</button>
   </div>
   <div class="topbar-actions" id="topbarActions">
-    <button class="graph-toggle-btn" id="docToggleBtn">📄 文档模式</button>
-    <button class="graph-toggle-btn" id="graphToggleBtn">🕸️ 图表模式</button>
-    <button class="graph-toggle-btn" id="quizToggleBtn">📝 答题模式</button>
-    <button class="graph-toggle-btn" id="quizSettingsBtn" title="自定义标题/题量/时长">⚙️ 答题设置</button>
-    <button class="graph-toggle-btn" id="quizBankBtn">🗂️ 题库管理</button>
-    <button class="graph-toggle-btn" id="restoreBackupBtn" title="出问题时可恢复上一次同步的数据">🛟 恢复备份</button>
+    <div class="mode-fixed-row" id="modeFixedRow">
+      <button class="graph-toggle-btn" id="favSettingsBtn" title="自定义常显的2个常用模式">⚙️ 常用</button>
+      <button class="graph-toggle-btn" id="modeExpandBtn">▾ 更多</button>
+    </div>
+    <div class="mode-more-row collapsed" id="modeMoreRow">
+      <button class="graph-toggle-btn" id="docToggleBtn">📄 文档模式</button>
+      <button class="graph-toggle-btn" id="graphToggleBtn">🕸️ 图表模式</button>
+      <button class="graph-toggle-btn" id="quizToggleBtn">📝 答题模式</button>
+      <button class="graph-toggle-btn" id="quizSettingsBtn" title="自定义标题/题量/时长">⚙️ 答题设置</button>
+      <button class="graph-toggle-btn" id="quizBankBtn">🗂️ 题库管理</button>
+      <button class="graph-toggle-btn" id="restoreBackupBtn" title="出问题时可恢复上一次同步的数据">🛟 恢复备份</button>
+    </div>
   </div>
   <div class="tabs" id="storyBar"></div>
 </div>
@@ -162,6 +168,24 @@
       <button class="qb-filter-btn" data-filter="undone">未设置</button>
     </div>
     <div class="quiz-bank-list" id="quizBankList"></div>
+  </div>
+</div>
+
+<!-- 自定义常用模式弹窗 -->
+<div class="mask" id="favMask">
+  <div class="sheet">
+    <h3>自定义常用模式</h3>
+    <div class="fav-option-list" id="favOptionList">
+      <label class="fav-option"><input type="checkbox" value="docToggleBtn"> 📄 文档模式</label>
+      <label class="fav-option"><input type="checkbox" value="graphToggleBtn"> 🕸️ 图表模式</label>
+      <label class="fav-option"><input type="checkbox" value="quizToggleBtn"> 📝 答题模式</label>
+      <label class="fav-option"><input type="checkbox" value="quizBankBtn"> 🗂️ 题库管理</label>
+    </div>
+    <div class="sync-tip">最多选择 2 个，收起状态下会一直显示（仅保存在本机，每人可以选不同的）</div>
+    <div class="row">
+      <button class="btn-cancel" id="favCancel">取消</button>
+      <button class="btn-save" id="favSave">保存</button>
+    </div>
   </div>
 </div>
 

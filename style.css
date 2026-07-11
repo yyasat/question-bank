@@ -99,10 +99,30 @@
     flex:0 0 auto;
   }
 
-  /* ================= 模式切换按钮容器：向下滑动时收起，向上滑动时展开 ================= */
+  /* ================= 模式切换按钮容器：向下滑动时整体收起，向上滑动时展开 ================= */
   .topbar-actions{
     max-width:600px;
     margin:0 auto;
+    max-height:320px;
+    opacity:1;
+    overflow:hidden;
+    transition:max-height .28s ease, opacity .2s ease;
+  }
+  .topbar-actions.collapsed{
+    max-height:0;
+    opacity:0;
+  }
+
+  /* 常显的4个固定位：2个自定义常用模式 + 常用设置按钮 + 展开/收起按钮 */
+  .mode-fixed-row{
+    display:flex;
+    flex-wrap:wrap;
+    gap:10px 10px;
+    padding-top:10px;
+  }
+
+  /* 展开后才显示的其余模式按钮 */
+  .mode-more-row{
     display:flex;
     flex-wrap:wrap;
     gap:10px 10px;
@@ -112,14 +132,39 @@
     padding-top:10px;
     padding-bottom:10px;
     border-bottom:1.5px solid var(--rule);
-    transition:max-height .28s ease, opacity .2s ease, padding .28s ease, border-color .28s ease;
+    transition:max-height .25s ease, opacity .2s ease, padding .25s ease, border-color .25s ease;
   }
-  .topbar-actions.collapsed{
+  .mode-more-row.collapsed{
     max-height:0;
     opacity:0;
     padding-top:0;
     padding-bottom:0;
     border-bottom-color:transparent;
+  }
+
+  /* 自定义常用模式弹窗里的勾选列表 */
+  .fav-option-list{
+    display:flex;
+    flex-direction:column;
+    gap:12px;
+    margin:14px 0 4px;
+  }
+  .fav-option{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    font-size:14.5px;
+    color:var(--ink);
+    cursor:pointer;
+  }
+  .fav-option input[type="checkbox"]{
+    width:17px;
+    height:17px;
+    accent-color:var(--accent);
+    cursor:pointer;
+  }
+  .fav-option.disabled{
+    opacity:.4;
   }
 
   /* ================= 模式切换：药丸形分段按钮，自动换到搜索框下一行 ================= */
