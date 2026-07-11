@@ -826,12 +826,14 @@ function watchFirebase(){
 // ================= 内置词条的修改持久化 =================
 // 内置 data 数组写死在代码里，本身不能云端保存；这里用"覆盖记录"的方式，
 // 把用户对内置词条的编辑/题库设置存到云端，下次打开时自动合并回来。
+let itemOverridesMap = {}; // builtinId -> patch，同时用于备份/恢复功能
 async function saveBuiltinItemOverride(idx, fullItemData){
   // 优先用词条自带的固定 _builtinId 做 key；理论上一定存在，idx 只是兜底。
   const builtinId = fullItemData._builtinId !== undefined ? fullItemData._builtinId : idx;
   const payload = { ...fullItemData };
   delete payload._globalIndex;
   delete payload._builtinId;
+  itemOverridesMap[builtinId] = payload;
   try{
     if(cloudMode === "firebase"){
       await dbSet(dbRef(db, "itemOverrides/" + builtinId), payload);
@@ -844,6 +846,7 @@ async function saveBuiltinItemOverride(idx, fullItemData){
 }
 
 function applyBuiltinOverride(builtinId, patch){
+  itemOverridesMap[builtinId] = patch;
   // 按固定 ID 查找词条，不受拖拽排序/删除导致的下标变化影响。
   const target = data.find(d => d._builtinId === builtinId);
   if(target) Object.assign(target, patch);
@@ -935,10 +938,130 @@ function hideSyncBanner(){
   syncBanner.classList.add("hide");
   setTimeout(()=> syncBanner.remove(), 500);
 }
+
+// ================= 同步备份与恢复 =================
+// 每次同步完成后，把当前数据存一份快照到本机 localStorage。
+// 保留最近两次快照：latest（这次）、prev（上一次），出问题时可以恢复到 prev。
+const BACKUP_KEY = "qbank_sync_backup_latest";
+const BACKUP_PREV_KEY = "qbank_sync_backup_prev";
+
+function buildSnapshot(){
+  return {
+    time: Date.now(),
+    cloudEntries: JSON.parse(JSON.stringify(cloudEntries)),
+    customCategories: JSON.parse(JSON.stringify(customCategories)),
+    categoryOverrides: JSON.parse(JSON.stringify(categoryOverrides)),
+    groups: JSON.parse(JSON.stringify(groups)),
+    itemOverrides: JSON.parse(JSON.stringify(itemOverridesMap)),
+    quizSettings: JSON.parse(JSON.stringify(quizSettings)),
+  };
+}
+
+function saveSyncBackup(){
+  try{
+    const prevLatest = localStorage.getItem(BACKUP_KEY);
+    if(prevLatest) localStorage.setItem(BACKUP_PREV_KEY, prevLatest);
+    localStorage.setItem(BACKUP_KEY, JSON.stringify(buildSnapshot()));
+  }catch(e){ console.error("保存同步备份失败", e); }
+}
+
+function getPrevBackup(){
+  try{
+    const raw = localStorage.getItem(BACKUP_PREV_KEY);
+    return raw ? JSON.parse(raw) : null;
+  }catch(e){ return null; }
+}
+
+// 把恢复的快照重新写回云端，这样三个人下次打开也是恢复后的结果
+async function pushSnapshotToCloud(snap){
+  if(cloudMode === "claude"){
+    for(const item of snap.cloudEntries){
+      if(item._cloudKey) await window.storage.set(item._cloudKey, JSON.stringify(item), true);
+    }
+    for(const cat of snap.customCategories){
+      if(cat._cloudKey) await window.storage.set(cat._cloudKey, JSON.stringify({label:cat.label, icon:cat.icon}), true);
+    }
+    for(const key in snap.categoryOverrides){
+      await window.storage.set("categoryOverride:" + key, JSON.stringify(snap.categoryOverrides[key]), true);
+    }
+    for(const g of snap.groups){
+      if(g._cloudKey) await window.storage.set(g._cloudKey, JSON.stringify({label:g.label, icon:g.icon, catKeys:g.catKeys}), true);
+    }
+    for(const bid in snap.itemOverrides){
+      await window.storage.set("itemOverride:" + bid, JSON.stringify(snap.itemOverrides[bid]), true);
+    }
+    await window.storage.set("quizSettings", JSON.stringify(snap.quizSettings), true);
+  } else if(cloudMode === "firebase"){
+    for(const item of snap.cloudEntries){
+      if(item._cloudKey){
+        const clean = { ...item }; delete clean._cloudKey;
+        await dbSet(dbRef(db, "entries/" + item._cloudKey), clean);
+      }
+    }
+    for(const cat of snap.customCategories){
+      if(cat._cloudKey) await dbSet(dbRef(db, "categories/" + cat._cloudKey), {label:cat.label, icon:cat.icon});
+    }
+    for(const key in snap.categoryOverrides){
+      await dbSet(dbRef(db, "categoryOverrides/" + key), snap.categoryOverrides[key]);
+    }
+    for(const g of snap.groups){
+      if(g._cloudKey) await dbSet(dbRef(db, "groups/" + g._cloudKey), {label:g.label, icon:g.icon, catKeys:g.catKeys});
+    }
+    for(const bid in snap.itemOverrides){
+      await dbSet(dbRef(db, "itemOverrides/" + bid), snap.itemOverrides[bid]);
+    }
+    await dbSet(dbRef(db, "quizSettings"), snap.quizSettings);
+  }
+}
+
+function applySnapshotLocally(snap){
+  cloudEntries = JSON.parse(JSON.stringify(snap.cloudEntries));
+  customCategories = JSON.parse(JSON.stringify(snap.customCategories));
+  categoryOverrides = JSON.parse(JSON.stringify(snap.categoryOverrides));
+  groups = JSON.parse(JSON.stringify(snap.groups));
+  itemOverridesMap = JSON.parse(JSON.stringify(snap.itemOverrides));
+  quizSettings = { ...quizSettings, ...snap.quizSettings };
+
+  // 重新对内置词条套用备份里记录的修改
+  Object.keys(itemOverridesMap).forEach(bid=>{
+    const target = data.find(d => d._builtinId === parseInt(bid));
+    if(target) Object.assign(target, itemOverridesMap[bid]);
+  });
+
+  computeCategories();
+  refreshCategoryUI();
+  renderStories();
+  renderGroups();
+  renderDrawer();
+  applyQuizSettingsUI();
+  updateIssueLine();
+  render(true);
+}
+
+async function restoreLastBackup(){
+  const snap = getPrevBackup();
+  if(!snap){ alert("没有可恢复的上一次同步记录"); return; }
+  const timeStr = new Date(snap.time).toLocaleString();
+  if(!confirm(`【第1次确认】将恢复到「${timeStr}」的同步结果，确定吗？`)) return;
+  if(!confirm(`【第2次确认】恢复后会覆盖当前所有人看到的数据，确定继续吗？`)) return;
+  if(!confirm(`【第3次确认】这是最后一次确认，确定要恢复备份吗？`)) return;
+  try{
+    applySnapshotLocally(snap);
+    await pushSnapshotToCloud(snap);
+    alert("已恢复到上一次同步结果");
+  }catch(e){
+    alert("恢复失败：" + e.message);
+  }
+}
+
+const restoreBackupBtn = document.getElementById("restoreBackupBtn");
+if(restoreBackupBtn) restoreBackupBtn.addEventListener("click", restoreLastBackup);
+
 if(cloudMode === "none" || syncPromises.length === 0){
   hideSyncBanner();
+  saveSyncBackup();
 } else {
-  Promise.all(syncPromises).then(hideSyncBanner).catch(hideSyncBanner);
+  Promise.all(syncPromises).then(()=>{ hideSyncBanner(); saveSyncBackup(); }).catch(()=>{ hideSyncBanner(); saveSyncBackup(); });
 }
 
 btnSave.addEventListener("click", async ()=>{
