@@ -128,6 +128,11 @@ sports.forEach(([who, sport])=>{
   data.push({cat:"sport", q:`${who} 对应的运动项目是？`, a:sport});
 });
 
+// 给内置词条分配一个固定不变的 ID（与它在 data 数组里的位置无关）。
+// 之前是直接用数组下标当 key 存题目选项，一旦拖拽排序或删除了某条内置词条，
+// 后面所有词条的下标都会整体错位，导致题目选项"张冠李戴"或看起来消失了。
+data.forEach((item, i) => { item._builtinId = i; });
+
 // ------------------ 渲染逻辑 ------------------
 let cloudEntries = [];
 function getAllData(){ 
@@ -822,17 +827,26 @@ function watchFirebase(){
 // 内置 data 数组写死在代码里，本身不能云端保存；这里用"覆盖记录"的方式，
 // 把用户对内置词条的编辑/题库设置存到云端，下次打开时自动合并回来。
 async function saveBuiltinItemOverride(idx, fullItemData){
+  // 优先用词条自带的固定 _builtinId 做 key；理论上一定存在，idx 只是兜底。
+  const builtinId = fullItemData._builtinId !== undefined ? fullItemData._builtinId : idx;
   const payload = { ...fullItemData };
   delete payload._globalIndex;
+  delete payload._builtinId;
   try{
     if(cloudMode === "firebase"){
-      await dbSet(dbRef(db, "itemOverrides/" + idx), payload);
+      await dbSet(dbRef(db, "itemOverrides/" + builtinId), payload);
     } else if(cloudMode === "claude"){
-      await window.storage.set("itemOverride:" + idx, JSON.stringify(payload), true);
+      await window.storage.set("itemOverride:" + builtinId, JSON.stringify(payload), true);
     }
   }catch(e){
     console.error("内置词条修改保存失败", e);
   }
+}
+
+function applyBuiltinOverride(builtinId, patch){
+  // 按固定 ID 查找词条，不受拖拽排序/删除导致的下标变化影响。
+  const target = data.find(d => d._builtinId === builtinId);
+  if(target) Object.assign(target, patch);
 }
 
 async function loadItemOverrides(){
@@ -842,8 +856,7 @@ async function loadItemOverrides(){
       dbOnValue(dbRef(db, "itemOverrides"), (snapshot)=>{
         const val = snapshot.val() || {};
         Object.keys(val).forEach(idxStr=>{
-          const idx = parseInt(idxStr);
-          if(data[idx]) data[idx] = { ...data[idx], ...val[idxStr] };
+          applyBuiltinOverride(parseInt(idxStr), val[idxStr]);
         });
         render(true);
         if(!done){ done=true; resolve(); }
@@ -857,8 +870,8 @@ async function loadItemOverrides(){
         try{
           const res = await window.storage.get(key, true);
           if(res && res.value){
-            const idx = parseInt(key.replace("itemOverride:", ""));
-            if(data[idx]) data[idx] = { ...data[idx], ...JSON.parse(res.value) };
+            const builtinId = parseInt(key.replace("itemOverride:", ""));
+            applyBuiltinOverride(builtinId, JSON.parse(res.value));
           }
         }catch(e){}
       }
