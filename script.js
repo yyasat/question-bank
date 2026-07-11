@@ -1062,17 +1062,25 @@ if(restoreBackupBtn) restoreBackupBtn.addEventListener("click", restoreLastBacku
   const topbarActions = document.getElementById("topbarActions");
   if(!topbarActions) return;
   let lastY = window.scrollY;
+  let accum = 0; // 累计同方向滑动距离，避免手机上一次事件只滑几像素、永远达不到阈值
   window.addEventListener("scroll", ()=>{
-    const currentY = window.scrollY;
+    const currentY = Math.max(0, window.scrollY);
     const delta = currentY - lastY;
+    lastY = currentY;
+
     if(currentY <= 60){
       topbarActions.classList.remove("collapsed");
-    } else if(delta > 6){
-      topbarActions.classList.add("collapsed");
-    } else if(delta < -6){
-      topbarActions.classList.remove("collapsed");
+      accum = 0;
+      return;
     }
-    lastY = currentY;
+
+    if(delta > 0){
+      accum = accum > 0 ? accum + delta : delta;
+      if(accum > 15){ topbarActions.classList.add("collapsed"); }
+    } else if(delta < 0){
+      accum = accum < 0 ? accum + delta : delta;
+      if(accum < -15){ topbarActions.classList.remove("collapsed"); }
+    }
   }, { passive:true });
 })();
 
