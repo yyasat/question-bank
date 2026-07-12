@@ -38,6 +38,7 @@
   <div class="kicker">Field Notes · Reference</div>
   <h1>整合速查</h1>
   <div class="issue" id="issueLine">实时检索</div>
+  <button class="view-new-btn" id="viewNewBtn">🆕 查看新增</button>
 </div>
 <hr class="rule">
 
@@ -168,6 +169,21 @@
       <button class="qb-filter-btn" data-filter="undone">未设置</button>
     </div>
     <div class="quiz-bank-list" id="quizBankList"></div>
+  </div>
+</div>
+
+<!-- 查看新增弹窗 -->
+<div class="quiz-mask" id="newEntriesMask">
+  <div class="quiz-bank-panel">
+    <div class="quiz-bank-header">
+      <h3>查看新增</h3>
+      <button class="quiz-close-btn" id="newEntriesCloseBtn">✕</button>
+    </div>
+    <div class="new-entries-date-row">
+      <label for="newEntriesDate">选择日期</label>
+      <input type="date" id="newEntriesDate">
+    </div>
+    <div class="quiz-bank-list" id="newEntriesList"></div>
   </div>
 </div>
 

@@ -839,7 +839,7 @@ function watchFirebase(){
 // ================= 同步不打扰：用户正在编辑/答题时，把云端更新暂存，等操作结束后再应用 =================
 // 判断当前是否有弹窗/答题界面正打开（补充或编辑词条、设置答题选项、题库管理、常用模式设置、答题作答中）
 function isUserBusy(){
-  return ["mask", "quizSetMask", "quizBankMask", "favMask", "quizMask"].some(id=>{
+  return ["mask", "quizSetMask", "quizBankMask", "favMask", "quizMask", "newEntriesMask"].some(id=>{
     const el = document.getElementById(id);
     return el && el.classList.contains("show");
   });
@@ -1212,6 +1212,7 @@ btnSave.addEventListener("click", async ()=>{
   if(!q || !a){ alert("问题和答案不能为空"); return; }
   const baseItem = currentEditIndex !== -1 ? getAllData()[currentEditIndex] : null;
   const itemData = { ...(baseItem || {}), cat: inCat.value, q, a, extra: inExtra.value.trim() || null };
+  if(currentEditIndex === -1){ itemData.createdAt = Date.now(); } // 只在新增时打时间戳，编辑已有词条不改动它的新增时间
 
   btnSave.textContent = "同步中…";
   btnSave.disabled = true;
@@ -1679,6 +1680,68 @@ quizBankCloseBtn.addEventListener("click", () => {
 quizBankSearch.addEventListener("input", () => {
   renderQuizBankList();
 });
+
+// ================= 查看新增：按日期查看当天/指定日期新增了哪些词条 =================
+const viewNewBtn = document.getElementById("viewNewBtn");
+const newEntriesMask = document.getElementById("newEntriesMask");
+const newEntriesCloseBtn = document.getElementById("newEntriesCloseBtn");
+const newEntriesDate = document.getElementById("newEntriesDate");
+const newEntriesList = document.getElementById("newEntriesList");
+
+function todayDateStr(){
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
+}
+function dateStrOfTimestamp(ts){
+  const d = new Date(ts);
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
+}
+
+function renderNewEntriesList(){
+  const dateStr = newEntriesDate.value || todayDateStr();
+  // 只有新增时打过时间戳的词条才能被统计到；老词条/内置词条没有创建时间，不会出现在这里
+  const list = getAllData()
+    .filter(item => item.createdAt && dateStrOfTimestamp(item.createdAt) === dateStr)
+    .sort((a, b) => b.createdAt - a.createdAt);
+
+  if(list.length === 0){
+    newEntriesList.innerHTML = `<div class="empty">— 这一天还没有新增词条 —</div>`;
+    return;
+  }
+
+  newEntriesList.innerHTML = list.map(item => {
+    const c = catInfo(item.cat);
+    const timeStr = new Date(item.createdAt).toLocaleTimeString("zh-CN", { hour: "2-digit", minute: "2-digit" });
+    return `
+      <div class="new-entry-card">
+        <div class="new-entry-time">${timeStr}</div>
+        <div class="new-entry-cat">${c.icon} ${c.label}</div>
+        <div class="doc-item-q">${item.q}</div>
+        <div class="doc-item-a"><b>${item.a}</b></div>
+        ${item.extra ? `<div class="doc-item-extra">${item.extra}</div>` : ""}
+      </div>
+    `;
+  }).join("");
+}
+
+if(viewNewBtn && newEntriesMask){
+  viewNewBtn.addEventListener("click", () => {
+    newEntriesDate.value = todayDateStr();
+    renderNewEntriesList();
+    newEntriesMask.classList.add("show");
+  });
+  newEntriesCloseBtn.addEventListener("click", () => {
+    newEntriesMask.classList.remove("show");
+    flushPendingSync();
+  });
+  newEntriesMask.addEventListener("click", (e) => {
+    if(e.target === newEntriesMask){
+      newEntriesMask.classList.remove("show");
+      flushPendingSync();
+    }
+  });
+  newEntriesDate.addEventListener("change", renderNewEntriesList);
+}
 
 quizBankFilter.addEventListener("click", (e) => {
   const btn = e.target.closest(".qb-filter-btn");
