@@ -468,8 +468,11 @@ function watchGroups(){
     let done=false;
     dbOnValue(dbRef(db, "groups"), (snapshot)=>{
       const val = snapshot.val() || {};
-      groups = Object.entries(val).map(([k,v])=>({ key:"g_"+k, label:v.label, icon:v.icon, catKeys:v.catKeys||[], _cloudKey:k }));
-      renderGroups(); renderDrawer();
+      const apply = () => {
+        groups = Object.entries(val).map(([k,v])=>({ key:"g_"+k, label:v.label, icon:v.icon, catKeys:v.catKeys||[], _cloudKey:k }));
+        renderGroups(); renderDrawer();
+      };
+      queueOrRun("groups", apply);
       if(!done){ done=true; resolve(); }
     });
   });
@@ -717,18 +720,25 @@ function watchCategories(){
     let done=false;
     dbOnValue(dbRef(db, "categories"), (snapshot)=>{
       const val = snapshot.val() || {};
-      customCategories = Object.entries(val).map(([k,v])=>({ key:"c_"+k, label:v.label, icon:v.icon, _cloudKey:k }));
-      computeCategories();
-      refreshCategoryUI();
+      const apply = () => {
+        customCategories = Object.entries(val).map(([k,v])=>({ key:"c_"+k, label:v.label, icon:v.icon, _cloudKey:k }));
+        computeCategories();
+        refreshCategoryUI();
+      };
+      queueOrRun("categories", apply);
       if(!done){ done=true; resolve(); }
     });
   });
   const p2 = new Promise(resolve=>{
     let done=false;
     dbOnValue(dbRef(db, "categoryOverrides"), (snapshot)=>{
-      categoryOverrides = snapshot.val() || {};
-      computeCategories();
-      refreshCategoryUI();
+      const val = snapshot.val() || {};
+      const apply = () => {
+        categoryOverrides = val;
+        computeCategories();
+        refreshCategoryUI();
+      };
+      queueOrRun("categoryOverrides", apply);
       if(!done){ done=true; resolve(); }
     });
   });
@@ -789,8 +799,8 @@ fabAdd.addEventListener("click", ()=> {
   inQ.value = ""; inA.value = ""; inExtra.value = "";
   mask.classList.add("show");
 });
-btnCancel.addEventListener("click", ()=> mask.classList.remove("show"));
-mask.addEventListener("click", (e)=>{ if(e.target===mask) mask.classList.remove("show"); });
+btnCancel.addEventListener("click", ()=>{ mask.classList.remove("show"); flushPendingSync(); });
+mask.addEventListener("click", (e)=>{ if(e.target===mask){ mask.classList.remove("show"); flushPendingSync(); } });
 
 async function loadClaudeEntries(){
   try{
@@ -815,11 +825,43 @@ function watchFirebase(){
     const entriesRef = dbRef(db, "entries");
     dbOnValue(entriesRef, (snapshot)=>{
       const val = snapshot.val() || {};
-      cloudEntries = Object.keys(val).map(k => ({ ...val[k], _cloudKey: k }));
-      updateIssueLine();
-      render(true);
+      const apply = () => {
+        cloudEntries = Object.keys(val).map(k => ({ ...val[k], _cloudKey: k }));
+        updateIssueLine();
+        render(true);
+      };
+      queueOrRun("entries", apply);
       if(!done){ done=true; resolve(); }
     });
+  });
+}
+
+// ================= 同步不打扰：用户正在编辑/答题时，把云端更新暂存，等操作结束后再应用 =================
+// 判断当前是否有弹窗/答题界面正打开（补充或编辑词条、设置答题选项、题库管理、常用模式设置、答题作答中）
+function isUserBusy(){
+  return ["mask", "quizSetMask", "quizBankMask", "favMask", "quizMask"].some(id=>{
+    const el = document.getElementById(id);
+    return el && el.classList.contains("show");
+  });
+}
+// 待应用的云端更新，按类型只保留最新的一份，避免重复计算
+const pendingSyncTasks = {};
+function queueOrRun(taskKey, applyFn){
+  if(isUserBusy()){
+    pendingSyncTasks[taskKey] = applyFn;
+  }else{
+    applyFn();
+  }
+}
+// 每次关闭弹窗/结束答题时调用：如果这时候不忙了，就把攒着的云端更新一次性应用
+function flushPendingSync(){
+  if(isUserBusy()) return;
+  const keys = Object.keys(pendingSyncTasks);
+  if(keys.length === 0) return;
+  keys.forEach(k=>{
+    const fn = pendingSyncTasks[k];
+    delete pendingSyncTasks[k];
+    try{ fn(); }catch(e){ console.error("延迟同步应用失败", e); }
   });
 }
 
@@ -858,10 +900,13 @@ async function loadItemOverrides(){
       let done=false;
       dbOnValue(dbRef(db, "itemOverrides"), (snapshot)=>{
         const val = snapshot.val() || {};
-        Object.keys(val).forEach(idxStr=>{
-          applyBuiltinOverride(parseInt(idxStr), val[idxStr]);
-        });
-        render(true);
+        const apply = () => {
+          Object.keys(val).forEach(idxStr=>{
+            applyBuiltinOverride(parseInt(idxStr), val[idxStr]);
+          });
+          render(true);
+        };
+        queueOrRun("itemOverrides", apply);
         if(!done){ done=true; resolve(); }
       });
     });
@@ -915,8 +960,11 @@ function watchQuizSettings(){
     let done=false;
     dbOnValue(dbRef(db, "quizSettings"), (snapshot)=>{
       const val = snapshot.val();
-      if(val) quizSettings = { ...quizSettings, ...val };
-      applyQuizSettingsUI();
+      const apply = () => {
+        if(val) quizSettings = { ...quizSettings, ...val };
+        applyQuizSettingsUI();
+      };
+      queueOrRun("quizSettings", apply);
       if(!done){ done=true; resolve(); }
     });
   });
@@ -1132,8 +1180,8 @@ if(restoreBackupBtn) restoreBackupBtn.addEventListener("click", restoreLastBacku
       });
     });
 
-    if(favCancel) favCancel.addEventListener("click", ()=> favMask.classList.remove("show"));
-    favMask.addEventListener("click", (e)=>{ if(e.target===favMask) favMask.classList.remove("show"); });
+    if(favCancel) favCancel.addEventListener("click", ()=>{ favMask.classList.remove("show"); flushPendingSync(); });
+    favMask.addEventListener("click", (e)=>{ if(e.target===favMask){ favMask.classList.remove("show"); flushPendingSync(); } });
 
     if(favSave) favSave.addEventListener("click", ()=>{
       const checked = [...favOptionList.querySelectorAll("input[type=checkbox]:checked")].map(b=>b.value);
@@ -1142,6 +1190,7 @@ if(restoreBackupBtn) restoreBackupBtn.addEventListener("click", restoreLastBacku
         applyFavLayout();
       }
       favMask.classList.remove("show");
+      flushPendingSync();
     });
   }
 })();
@@ -1202,6 +1251,7 @@ btnSave.addEventListener("click", async ()=>{
     }
     inQ.value = ""; inA.value = ""; inExtra.value = "";
     mask.classList.remove("show");
+    flushPendingSync();
   }catch(e){
     alert("同步失败：" + e.message);
   }finally{
@@ -1623,6 +1673,7 @@ quizBankBtn.addEventListener("click", () => {
 
 quizBankCloseBtn.addEventListener("click", () => {
   quizBankMask.classList.remove("show");
+  flushPendingSync();
 });
 
 quizBankSearch.addEventListener("input", () => {
@@ -1708,6 +1759,7 @@ let quizSetIndex = -1;
 
 quizSetCancel.addEventListener("click", () => {
   quizSetMask.classList.remove("show");
+  flushPendingSync();
 });
 
 quizSetSave.addEventListener("click", async () => {
@@ -1734,6 +1786,7 @@ quizSetSave.addEventListener("click", async () => {
       reverseWrongOptions: (rw1 && rw2) ? [rw1, rw2] : null
     });
     quizSetMask.classList.remove("show");
+    flushPendingSync();
   }catch(e){
     alert("保存失败：" + e.message);
   }finally{
@@ -1896,6 +1949,7 @@ function updateQuizTimerUI(){
 function finishQuiz(){
   clearInterval(quizTimer);
   quizMask.classList.remove("show");
+  flushPendingSync();
 
   const wrongList = [];
   quizPool.forEach((item, i) => {
@@ -1944,10 +1998,12 @@ scrollReviewBtn.addEventListener("click", () => {
 quizCloseBtn.addEventListener("click", () => {
   clearInterval(quizTimer);
   quizMask.classList.remove("show");
+  flushPendingSync();
 });
 
 scrollCloseBtn.addEventListener("click", () => {
   scrollMask.classList.remove("show");
+  flushPendingSync();
 });
 
 function renderGraph(currentList) {
